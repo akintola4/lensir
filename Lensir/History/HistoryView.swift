@@ -257,6 +257,11 @@ struct SettingsView: View {
             } footer: {
                 Text("Taps when a code is found, warns on a risky one, and ticks as the drawer settles, or when something is copied or kept.")
             }
+            Section {
+                Toggle("Open results right away", isOn: $settings.autoOpen)
+            } footer: {
+                Text("Show the details as soon as a code is found, without tapping it.")
+            }
             Section("Privacy") {
                 Text("Lensir has no network code. Codes, photos and history never leave this phone, and links only open when you tap Open.")
                     .font(Typeface.body)

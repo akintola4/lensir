@@ -56,7 +56,7 @@ enum LensirStore {
 enum LaunchOptions {
     /// `-LensirDemo found`: open on a demo scene. One of `looking`, `found`,
     /// `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text`, `photos`,
-    /// or `make-link`, `make-wifi`, `make-risky`, `make-show` for Make.
+    /// `live` (a code reported like a real camera's), or `make-link`, `make-wifi`, `make-risky`, `make-show` for Make.
     static var demo: DemoScene? { value(after: "-LensirDemo").flatMap(DemoScene.init(rawValue:)) }
 
     /// `-LensirNoCamera`: act as if the phone has no camera.
@@ -73,6 +73,10 @@ enum LaunchOptions {
 
     /// `-LensirEmptyCodes`: with -LensirOpenHistory, fill in scans but no My codes.
     static var emptyCodes: Bool { flag("-LensirEmptyCodes") }
+
+    /// `-LensirAutoOpen`: turn on "Open results right away" for this run,
+    /// without saving it.
+    static var autoOpen: Bool { flag("-LensirAutoOpen") }
 
     /// `-LensirNoSplash`: open straight on the scanner, for screenshots.
     static var skipSplash: Bool { flag("-LensirNoSplash") }

@@ -4,9 +4,11 @@
 //
 //  The one screen. The camera fills it; four brackets wait in the middle.
 //  When a code turns up they snap onto it and a white pill names what it
-//  is. Nothing opens by itself: tap the pill and a drawer slides up from
-//  the bottom edge with the whole thing, and you choose. Make, between the
-//  photo and History buttons, raises the same drawer to make a code.
+//  is. Tap the pill and a drawer slides up from the bottom edge with the
+//  whole thing, and you choose. With "Open results right away" on, the
+//  drawer comes up by itself once the code holds still. Links still only
+//  open when you press Open. Make, between the photo and History buttons,
+//  raises the same drawer to make a code.
 //
 
 import PhotosUI
@@ -106,6 +108,10 @@ struct ScannerScreen: View {
             model.reduceMotion = reduceMotion
             drawer.reduceMotion = reduceMotion
         }
+        // The camera keeps running under History and the photo list; nothing
+        // should open behind them.
+        .onChange(of: autoOpens, initial: true) { model.autoOpen = autoOpens }
+        .task(id: demoFrame) { await reportLiveDemoCode() }
         .onChange(of: model.result?.id) {
             guard model.result != nil else {
                 // The drawer's gone: VoiceOver lands back on the scanner.
@@ -296,6 +302,10 @@ struct ScannerScreen: View {
         .padding(.trailing, Metrics.edge + safe.trailing)
     }
 
+    private var autoOpens: Bool {
+        settings.autoOpen && !showingHistory && model.photoCodes.isEmpty
+    }
+
     private var hintText: String? {
         ScannerFocusLogic.hintText(notice: model.notice, cameraIsLive: cameraIsLive, codeInView: model.detection != nil)
     }
@@ -433,6 +443,10 @@ struct ScannerScreen: View {
             }
             return
         }
+        if scene == .live {
+            demoFrame = frame
+            return
+        }
         model.place(Detection(raw: payload, symbology: "QR", bounds: frame))
         if scene.opensSheet {
             var transaction = Transaction()
@@ -529,6 +543,19 @@ struct ScannerScreen: View {
         closeDrawer(velocity: -1400)
         await wait(1.4)
         model.found(detection)
+    }
+
+    /// `-LensirDemo live`: report the demo code ten times a second, through
+    /// the same calls the camera makes, so auto-open and the no-repop rule
+    /// run as they would on a phone. The camera is paused under a drawer.
+    private func reportLiveDemoCode() async {
+        guard LaunchOptions.demo == .live, let frame = demoFrame, let payload = LaunchOptions.demo?.payload else { return }
+        while !Task.isCancelled {
+            if !model.drawerOpen {
+                model.found(Detection(raw: payload, symbology: "QR", bounds: frame))
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
     }
 
     private func toggleTorch() {

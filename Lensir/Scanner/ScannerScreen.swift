@@ -99,7 +99,9 @@ struct ScannerScreen: View {
                 CameraAccess.setTorch(false)
             }
         }
-        .sensoryFeedback(trigger: model.foundCount) { _, _ in settings.haptics ? .impact(weight: .medium) : nil }
+        .sensoryFeedback(trigger: model.lastFound) { _, found in
+            HapticLogic.feedback(for: .detected(risky: found.risky), hapticsOn: settings.haptics)
+        }
         .sensoryFeedback(trigger: splashLocked) { _, locked in settings.haptics && locked ? .impact(weight: .light) : nil }
         .sheet(isPresented: $showingHistory, onDismiss: openPendingRecord) {
             HistoryView(settings: settings) { record in
@@ -378,9 +380,9 @@ struct ScannerScreen: View {
         await wait(1.4)
         model.openDetection()
         await wait(1.8)
-        drawer.move(to: .expanded, velocity: 900)
+        drawer.settle(to: .expanded, velocity: 900)
         await wait(2.4)
-        drawer.move(to: .compact)
+        drawer.settle(to: .compact)
         await wait(1.4)
         // A flick down: dismissed at 1,400 pt/s.
         closeDrawer(velocity: -1400)

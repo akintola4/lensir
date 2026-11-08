@@ -40,6 +40,11 @@ struct ScanResult: Identifiable, Equatable {
 
 @Observable
 final class ScannerModel {
+    struct Found: Equatable {
+        var count: Int
+        var risky: Bool
+    }
+
     enum Camera: Equatable {
         case checking
         case dataScanner
@@ -55,8 +60,9 @@ final class ScannerModel {
     private(set) var detectionSummary: ResultSummary?
     var result: ScanResult?
     var torchOn = false
-    /// Goes up each time a new code is found; drives the haptic.
-    private(set) var foundCount = 0
+    /// Changes each time a new code is found; drives the haptic, which is
+    /// the warning when the code gets a "check this" verdict.
+    private(set) var lastFound = Found(count: 0, risky: false)
     /// A short line in place of the hint, like "No code in that photo".
     var notice: String?
     /// Several codes in one photo: the list to pick from.
@@ -76,12 +82,12 @@ final class ScannerModel {
         lostTask?.cancel()
         let isNew = detection?.raw != new.raw
         if isNew {
-            foundCount += 1
             let summary = Self.summary(new)
             withAnimation(reduceMotion ? Motion.fade : Motion.snap) {
                 detection = new
                 detectionSummary = summary
             }
+            lastFound = Found(count: lastFound.count + 1, risky: summary.isWarning)
             AccessibilityNotification.Announcement("Found \(summary.kindLabel.lowercased()): \(summary.title)").post()
         } else if detection != new {
             withAnimation(reduceMotion ? nil : Motion.track) { detection = new }

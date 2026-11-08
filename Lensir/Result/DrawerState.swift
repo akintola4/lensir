@@ -17,6 +17,15 @@ final class DrawerState {
     private(set) var compactHeight: CGFloat = 0
     private(set) var expandedHeight: CGFloat = 0
     var reduceMotion = false
+    /// The last time a drag or a grabber tap let go, and where it sent the
+    /// drawer. Drives the detent haptic.
+    private(set) var lastSettle: Settle?
+
+    struct Settle: Equatable {
+        var count: Int
+        var from: DrawerSnap
+        var to: DrawerSnap
+    }
 
     /// Where to go once the content has been measured.
     private var pending: (snap: DrawerSnap, animated: Bool)?
@@ -65,8 +74,16 @@ final class DrawerState {
         }
     }
 
+    /// A drag or a grabber tap let go: move to `target` and mark it, so the
+    /// haptic fires as the spring starts.
+    func settle(to target: DrawerSnap, velocity: CGFloat = 0) {
+        let from = snap
+        move(to: target, velocity: velocity)
+        lastSettle = Settle(count: (lastSettle?.count ?? 0) + 1, from: from, to: target)
+    }
+
     func toggle() {
-        move(to: snap == .expanded ? .compact : .expanded)
+        settle(to: snap == .expanded ? .compact : .expanded)
     }
 
     func dragChanged(_ translation: CGFloat) {

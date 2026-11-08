@@ -30,6 +30,8 @@ struct ResultDrawer: View {
     @Environment(\.openURL) private var openURL
     @State private var copied: ResultAction?
     @State private var copiedTask: Task<Void, Never>?
+    /// Goes up on every copy, so copying the same thing twice ticks twice.
+    @State private var copyCount = 0
     @State private var savingContact = false
     @State private var wifiStatus: WiFiStatus?
     /// Grabber plus header: always a drag handle, pinned above the scroll.
@@ -110,7 +112,10 @@ struct ResultDrawer: View {
         .accessibilityElement(children: .contain)
         .accessibilityAction(.escape) { onClose(0) }
         .accessibilityAction(named: "Close") { onClose(0) }
-        .sensoryFeedback(trigger: copied) { _, new in haptics && new != nil ? .success : nil }
+        .sensoryFeedback(trigger: copyCount) { _, _ in HapticLogic.feedback(for: .copied, hapticsOn: haptics) }
+        .sensoryFeedback(trigger: drawer.lastSettle) { _, settle in
+            settle.flatMap { HapticLogic.feedback(for: .drawerSettled(from: $0.from, to: $0.to), hapticsOn: haptics) }
+        }
         .sheet(isPresented: $savingContact) {
             if case .contact(let contact) = result.payload {
                 ContactSaveView(contact: contact) { savingContact = false }
@@ -171,7 +176,7 @@ struct ResultDrawer: View {
                 let velocity = value.velocity.height
                 switch drawer.dragEnded(velocity: velocity) {
                 case .dismissed: onClose(-velocity)
-                case let snap: drawer.move(to: snap, velocity: -velocity)
+                case let snap: drawer.settle(to: snap, velocity: -velocity)
                 }
             }
     }
@@ -475,6 +480,7 @@ struct ResultDrawer: View {
     /// action is the raw-text button under Details.
     private func copy(_ text: String, for action: ResultAction?) {
         UIPasteboard.general.string = text
+        copyCount += 1
         copiedTask?.cancel()
         withAnimation(Motion.fade) {
             copied = action

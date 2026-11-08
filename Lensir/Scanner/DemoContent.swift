@@ -14,26 +14,40 @@ import SwiftUI
 
 enum DemoScene: String {
     case looking, found, safe, risky, http, wifi, contact, phone, text, photos
+    case safeExpanded = "safe-expanded"
+    case riskyExpanded = "risky-expanded"
+    case wifiExpanded = "wifi-expanded"
+    case contactExpanded = "contact-expanded"
+    /// Plays through the drawer by itself, for recording: the brackets snap,
+    /// the drawer rises, expands, settles back and is flicked away.
+    case drawerTour = "drawer-tour"
 
     var payload: String? {
         switch self {
         case .looking, .photos: nil
-        case .found, .safe: "https://paystack.com/pay/kola-logistics"
+        case .found, .safe, .safeExpanded, .drawerTour: "https://paystack.com/pay/kola-logistics"
         // The "a" after "payst" is Cyrillic (U+0430).
-        case .risky: "https://payst\u{0430}ck.com/pay"
+        case .risky, .riskyExpanded: "https://payst\u{0430}ck.com/pay"
         case .http: "http://bit.ly/3kQ9xZp"
-        case .wifi: "WIFI:T:WPA;S:Kola Logistics;P:jollof-2026;;"
-        case .contact: "MECARD:N:Okafor,Ada;TEL:+2348031234567;EMAIL:ada@kolalogistics.ng;ORG:Kola Logistics;;"
+        case .wifi, .wifiExpanded: "WIFI:T:WPA;S:Kola Logistics;P:jollof-2026;;"
+        case .contact, .contactExpanded: "MECARD:N:Okafor,Ada;TEL:+2348031234567;EMAIL:ada@kolalogistics.ng;ORG:Kola Logistics;URL:https://kolalogistics.ng;ADR:12 Allen Ave\\, Ikeja\\, Lagos;;"
         case .phone: "tel:+2348031234567"
         case .text: "Gate code 4417. Ring twice, then wait by the blue door."
         }
     }
 
-    /// Scenes that open the result sheet, not just the pill.
+    /// Scenes that open with the drawer already up, not just the pill.
     var opensSheet: Bool {
         switch self {
-        case .looking, .found, .photos: false
+        case .looking, .found, .photos, .drawerTour: false
         default: true
+        }
+    }
+
+    var expandsDrawer: Bool {
+        switch self {
+        case .safeExpanded, .riskyExpanded, .wifiExpanded, .contactExpanded: true
+        default: false
         }
     }
 }

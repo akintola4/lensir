@@ -35,10 +35,14 @@ mkdir -p "$OUT"
 shot looking.png -LensirDemo looking
 shot found.png -LensirDemo found
 shot safe-link.png -LensirDemo safe
+shot safe-expanded.png -LensirDemo safe-expanded
 shot lookalike.png -LensirDemo risky
+shot lookalike-expanded.png -LensirDemo risky-expanded
 shot short-link.png -LensirDemo http
 shot wifi.png -LensirDemo wifi
+shot wifi-expanded.png -LensirDemo wifi-expanded
 shot contact.png -LensirDemo contact
+shot contact-expanded.png -LensirDemo contact-expanded
 shot phone.png -LensirDemo phone
 shot text.png -LensirDemo text
 shot photo-codes.png -LensirDemo photos

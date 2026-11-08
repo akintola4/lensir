@@ -4,8 +4,8 @@
 //
 //  The one screen. The camera fills it; four brackets wait in the middle.
 //  When a code turns up they snap onto it and a white pill names what it
-//  is. Nothing opens by itself: tap the pill and it grows into the sheet,
-//  where you see the whole thing and choose.
+//  is. Nothing opens by itself: tap the pill and a drawer slides up from
+//  the bottom edge with the whole thing, and you choose.
 //
 
 import PhotosUI
@@ -18,9 +18,11 @@ struct ScannerScreen: View {
     @State private var model = ScannerModel()
     @State private var photoItem: PhotosPickerItem?
     @State private var showingHistory = LaunchOptions.openHistory
-    @State private var pendingHistoryRecord: (raw: String, symbology: String)?
+    @State private var pendingHistoryRecord: (raw: String, symbology: String, date: Date)?
     @State private var pillSize = CGSize(width: 160, height: 44)
-    @Namespace private var namespace
+    @State private var drawer = DrawerState()
+    /// Where the demo camera's code sits, for the drawer tour.
+    @State private var demoFrame: CGRect?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -31,11 +33,19 @@ struct ScannerScreen: View {
             let size = CGSize(width: proxy.size.width + safe.leading + safe.trailing,
                               height: proxy.size.height + safe.top + safe.bottom)
             ZStack(alignment: .topLeading) {
-                camera(size: size)
-                overlay(size: size)
-                controls(safe: safe)
-                pill(size: size)
-                sheet(safe: safe)
+                Color.black
+                // The page: everything under the drawer. It sinks back a
+                // little as the drawer expands, like Vaul's background scale.
+                ZStack(alignment: .topLeading) {
+                    camera(size: size)
+                    overlay(size: size)
+                    controls(safe: safe)
+                    pill(size: size)
+                }
+                .frame(width: size.width, height: size.height)
+                .clipShape(RoundedRectangle(cornerRadius: model.result == nil ? 0 : drawer.backgroundRadius, style: .continuous))
+                .scaleEffect(model.result == nil ? 1 : drawer.backgroundScale)
+                drawerLayer(size: size, safe: safe)
             }
             .frame(width: size.width, height: size.height)
             .coordinateSpace(.named("screen"))
@@ -44,8 +54,16 @@ struct ScannerScreen: View {
         .background(Color.black)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .task { await start() }
-        .onChange(of: reduceMotion, initial: true) { model.reduceMotion = reduceMotion }
-        .onChange(of: model.result?.id) { saveToHistory() }
+        .onChange(of: reduceMotion, initial: true) {
+            model.reduceMotion = reduceMotion
+            drawer.reduceMotion = reduceMotion
+        }
+        .onChange(of: model.result?.id) {
+            guard model.result != nil else { return }
+            let expands = LaunchOptions.demo?.expandsDrawer ?? false
+            drawer.present(expands ? .expanded : .compact, animated: !(LaunchOptions.demo?.opensSheet ?? false))
+            saveToHistory()
+        }
         .onChange(of: photoItem) { readPhoto() }
         .onChange(of: scenePhase) {
             if scenePhase != .active, model.torchOn {
@@ -56,7 +74,7 @@ struct ScannerScreen: View {
         .sensoryFeedback(trigger: model.foundCount) { _, _ in settings.haptics ? .impact(weight: .medium) : nil }
         .sheet(isPresented: $showingHistory, onDismiss: openPendingRecord) {
             HistoryView(settings: settings) { record in
-                pendingHistoryRecord = (record.raw, record.symbology)
+                pendingHistoryRecord = (record.raw, record.symbology, record.date)
                 showingHistory = false
             }
         }
@@ -113,9 +131,10 @@ struct ScannerScreen: View {
         if cameraIsLive {
             let frame = model.detection.map { ScanGeometry.foundFrame(around: $0.bounds, in: size) } ?? ScanGeometry.lookingFrame(in: size)
             let warning = model.result?.summary.isWarning ?? model.detectionSummary?.isWarning ?? false
+            let base = ScanGeometry.dimOpacity(found: model.detection != nil)
             ScanOverlay(
                 frame: frame,
-                dim: ScanGeometry.dimOpacity(found: model.detection != nil, sheetOpen: model.result != nil),
+                dim: model.result == nil ? base : drawer.dim(base: base),
                 warning: warning && (model.detection != nil || model.result != nil),
                 showsBrackets: !(model.result != nil && model.detection == nil)
             )
@@ -184,7 +203,7 @@ struct ScannerScreen: View {
     @ViewBuilder private func pill(size: CGSize) -> some View {
         if let detection = model.detection, let summary = model.detectionSummary, model.result == nil {
             let frame = ScanGeometry.foundFrame(around: detection.bounds, in: size).rect
-            FoundPill(summary: summary, namespace: namespace, morphs: !reduceMotion) {
+            FoundPill(summary: summary) {
                 model.openDetection()
             }
             .fixedSize()
@@ -194,30 +213,38 @@ struct ScannerScreen: View {
         }
     }
 
-    @ViewBuilder private func sheet(safe: EdgeInsets) -> some View {
+    /// The result drawer, attached to the bottom edge, and the dimmed
+    /// area above it, which closes it when tapped.
+    @ViewBuilder private func drawerLayer(size: CGSize, safe: EdgeInsets) -> some View {
         if let result = model.result {
+            let maxHeight = size.height - safe.top - 8
             ZStack(alignment: .bottom) {
                 Color.clear
                     .contentShape(Rectangle())
-                    .onTapGesture { model.closeResult() }
+                    .onTapGesture { closeDrawer() }
                     .accessibilityHidden(true)
-                ResultSheet(result: result, haptics: settings.haptics, namespace: namespace,
-                            morphs: !reduceMotion && result.source == .camera) {
-                    model.closeResult()
+                ResultDrawer(result: result, drawer: drawer, haptics: settings.haptics,
+                             bottomInset: max(safe.bottom, 16), maxHeight: maxHeight) { velocity in
+                    closeDrawer(velocity: velocity)
                 }
                 .id(result.id)
-                .padding(.leading, Metrics.edge + safe.leading)
-                .padding(.trailing, Metrics.edge + safe.trailing)
-                .padding(.bottom, bottomInset(safe))
-                .transition(sheetTransition(result))
+                .padding(.leading, safe.leading)
+                .padding(.trailing, safe.trailing)
+                // Laid out at full height and pushed down, so only the top
+                // `drawer.height` points show above the edge.
+                .offset(y: maxHeight - drawer.height)
             }
+            .frame(width: size.width, height: size.height)
         }
     }
 
-    private func sheetTransition(_ result: ScanResult) -> AnyTransition {
-        if reduceMotion { return .opacity }
-        if result.source == .camera { return .opacity }
-        return .opacity.combined(with: .offset(y: 24))
+    /// Slide the drawer away at the speed it was thrown, let the brackets
+    /// go back to waiting, and start the camera again once it's gone.
+    private func closeDrawer(velocity: CGFloat = 0) {
+        model.releaseDetection()
+        drawer.move(to: .dismissed, velocity: velocity) {
+            if drawer.snap == .dismissed { model.clearResult() }
+        }
     }
 
     /// The bottom row sits 26 pt above the screen's edge on a phone with a
@@ -238,6 +265,13 @@ struct ScannerScreen: View {
 
     private func placeDemoCode(_ frame: CGRect) {
         guard let scene = LaunchOptions.demo, let payload = scene.payload, frame.width > 0, model.result == nil else { return }
+        if scene == .drawerTour {
+            if demoFrame == nil {
+                demoFrame = frame
+                Task { await playDrawerTour(Detection(raw: payload, symbology: "QR", bounds: frame)) }
+            }
+            return
+        }
         model.place(Detection(raw: payload, symbology: "QR", bounds: frame))
         if scene.opensSheet {
             var transaction = Transaction()
@@ -246,6 +280,26 @@ struct ScannerScreen: View {
                 model.result = ScanResult(raw: payload, symbology: "QR", source: .camera)
             }
         }
+    }
+
+    /// `-LensirDemo drawer-tour`: what a finger would do, on a timer, since
+    /// the Simulator can't drag. Each step goes through the same calls a
+    /// real drag or tap makes.
+    private func playDrawerTour(_ detection: Detection) async {
+        func wait(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
+        await wait(1.2)
+        model.found(detection)
+        await wait(1.4)
+        model.openDetection()
+        await wait(1.8)
+        drawer.move(to: .expanded, velocity: 900)
+        await wait(2.4)
+        drawer.move(to: .compact)
+        await wait(1.4)
+        // A flick down: dismissed at 1,400 pt/s.
+        closeDrawer(velocity: -1400)
+        await wait(1.4)
+        model.found(detection)
     }
 
     private func toggleTorch() {
@@ -273,7 +327,7 @@ struct ScannerScreen: View {
     private func openPendingRecord() {
         guard let record = pendingHistoryRecord else { return }
         pendingHistoryRecord = nil
-        model.open(raw: record.raw, symbology: record.symbology, source: .history)
+        model.open(raw: record.raw, symbology: record.symbology, source: .history, scannedAt: record.date)
     }
 
     /// Opening a code saves it. Holding the camera on the same one only

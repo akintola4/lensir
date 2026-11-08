@@ -89,7 +89,7 @@ struct PhotoCodesSheet: View {
                     HStack(spacing: 12) {
                         thumbnail(code.thumbnail)
                         VStack(alignment: .leading, spacing: 2) {
-                            ResultSheet.title(summary)
+                            ResultDrawer.title(summary)
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .truncationMode(.middle)

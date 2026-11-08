@@ -2,9 +2,9 @@
 //  ResultSummary.swift
 //  Lensir
 //
-//  Everything the pill and the result sheet say about a code: its title, the
+//  Everything the pill and the result drawer say about a code: its title, the
 //  small label under it, one main button and one plain one. Every kind of
-//  code uses the same sheet; only these change.
+//  code uses the same drawer; only these change.
 //
 
 import Foundation
@@ -139,7 +139,7 @@ nonisolated enum ResultLogic {
     }
 
     /// The text in the pill: a link's site, a network's name, a person's name.
-    /// Long text is cut to fit; the full thing is in the sheet.
+    /// Long text is cut to fit; the full thing is in the drawer.
     static func pillText(_ summary: ResultSummary, limit: Int = 26) -> String {
         let text = summary.title
         guard text.count > limit else { return text }

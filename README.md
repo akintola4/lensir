@@ -10,15 +10,19 @@ It isn't on the App Store. You clone it, open it in Xcode and run it on your own
 
 | Looking | Found | A safe link |
 |---|---|---|
-| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The sheet for paystack.com: the full address, "Secure · the real paystack.com" and an Open in Safari button](docs/screenshots/safe-link.png) |
+| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The drawer for paystack.com: the full address, "Secure · the real paystack.com" and an Open in Safari button](docs/screenshots/safe-link.png) |
 
-| A lookalike | A short link over http | Wi-Fi |
+| A safe link, expanded | A lookalike | A lookalike, expanded |
 |---|---|---|
-| ![Red brackets and a sheet saying the underlined "а" is a Cyrillic letter, so this is not paystack.com](docs/screenshots/lookalike.png) | ![A bit.ly link: not secure, and a link shortener that hides where it goes](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) |
+| ![The drawer pulled up: Details with the full address and every check passed](docs/screenshots/safe-expanded.png) | ![Red brackets and a drawer saying the underlined "а" is a Cyrillic letter, so this is not paystack.com](docs/screenshots/lookalike.png) | ![Details for the lookalike: "The real site" and "Plain letters" crossed out in red](docs/screenshots/lookalike-expanded.png) |
+
+| A short link over http | Wi-Fi | Wi-Fi, expanded |
+|---|---|---|
+| ![A bit.ly link: not secure, and a link shortener that hides where it goes](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) | ![Every field of the Wi-Fi code, the raw text and a Scan again button](docs/screenshots/wifi-expanded.png) |
 
 | Contact | Several codes in one photo | History |
 |---|---|---|
-| ![A contact card code with a Save contact button](docs/screenshots/contact.png) | ![A list of three codes found in one photo](docs/screenshots/photo-codes.png) | ![History grouped by day, with a warning icon on the risky link](docs/screenshots/history.png) |
+| ![A contact card code with a Save contact button](docs/screenshots/contact.png) | ![A list of three codes found in one photo](docs/screenshots/photo-codes.png) | ![History grouped by day, with the swapped letter underlined in red on the risky link](docs/screenshots/history.png) |
 
 | Camera turned off | No camera |
 |---|---|
@@ -29,7 +33,7 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 ## What it does
 
 - The camera fills the screen. Four white corner brackets wait in the middle with the rest dimmed. When a code turns up they snap onto it in about 200 ms with a light tap, and a white pill under the code names what it is: the site for a link, the network for Wi-Fi, the person for a contact card.
-- Tap the pill and it grows into a sheet with the whole thing: the full address, the Wi-Fi password, the phone number. Each kind of code has its own main button:
+- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). It follows your finger, and when you let go it settles where the throw would carry it. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, every field in the code, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
 
   | Code | Main button | Second button |
   |---|---|---|
@@ -52,13 +56,13 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 
 Apple's Camera app opens a link the moment you tap its banner, and plenty of scanner apps open it as soon as they read it. That's exactly what a scam code is counting on. A sticker over the real code on a parking meter or a market stall can send you to a page that looks like your bank.
 
-Lensir stops before that. The brackets find the code and the pill tells you the site's name. Nothing opens until you've seen the whole address and pressed Open yourself. When something about a link looks wrong, the brackets turn red, Copy link becomes the main button, and opening it is a red "Open anyway" underneath.
+Lensir stops before that. The brackets find the code and the pill tells you the site's name. Nothing opens until you've seen the whole address in the drawer and pressed Open yourself. When something about a link looks wrong, the brackets turn red, Copy link becomes the main button, and opening it is a red "Open anyway" underneath.
 
 ## The checks
 
-All of this runs on the phone, in `Lensir/Logic/LinkSafety.swift`, without looking anything up. Each problem shows as one plain sentence in the sheet, and lookalike letters are underlined in red.
+All of this runs on the phone, in `Lensir/Logic/LinkSafety.swift`, without looking anything up. Each problem shows as one plain sentence in the drawer, and lookalike letters are underlined in red.
 
-- Plain http. The sheet says anyone on the same Wi‑Fi can see what you send.
+- Plain http. The drawer says anyone on the same Wi‑Fi can see what you send.
 - Link shorteners: bit.ly, tinyurl.com, t.co, goo.gl, ow.ly, is.gd, buff.ly, cutt.ly, rebrand.ly, shorturl.at, rb.gy, qrco.de and about 25 more. A short link hides where it goes, and finding out would mean going online.
 - A bare IP address instead of a site name, including sneaky spellings like 3232235521 and 0xC0A80001.
 - `javascript:` and `data:` links, which aren't web addresses at all. Lensir won't open these.
@@ -123,7 +127,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 90 tests in `LensirTests`. They cover:
+There are 110 tests in `LensirTests`. They cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -134,6 +138,8 @@ There are 90 tests in `LensirTests`. They cover:
 - History grouped by day and newest first, and repeat scans merged
 - the links handed to Phone, Messages, Mail and Maps
 - reading three codes out of one photo with Vision, in order
+- the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, and the dim and background scale that follow its height
+- what Details lists: a pass or fail row per check, and every field for each kind of code
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -141,7 +147,8 @@ Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
 A few are in the scheme, switched off. Turn them on under Product › Scheme › Edit Scheme › Run › Arguments, or pass them to `xcrun simctl launch`.
 
-- `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the sheet too.
+- `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded` and `contact-expanded` open it pulled all the way up.
+- `-LensirDemo drawer-tour` plays the drawer through by itself, since you can't drag in the Simulator: the brackets snap, the drawer rises, expands, settles back and is flicked away. It's how the recording in `~/Movies/Lensir drawer/` was made.
 - `-LensirOpenHistory` opens History on launch, filled with demo scans. Add `-LensirEmptyHistory` to see it empty.
 - `-LensirCameraDenied` acts as if camera access is turned off in Settings.
 - `-LensirNoCamera` acts as if the phone has no camera.
@@ -158,10 +165,11 @@ Demo runs keep history in memory, so they never touch your real history.
 ```
 Lensir/            the app
   Logic/           pure and tested: PayloadParser, LinkSafety, Confusables, Brands,
-                   Punycode, LinkAddress, ResultSummary, ScanGeometry, HistoryLogic
+                   Punycode, LinkAddress, ResultSummary, ResultDetails, ScanGeometry,
+                   DrawerLogic, HistoryLogic
   Scanner/         the screen: camera (VisionKit, with an AVFoundation fallback),
                    brackets, pill, photos, demo scenes
-  Result/          the sheet, the address text, saving contacts, joining Wi-Fi
+  Result/          the drawer and its state, the address text, saving contacts, joining Wi-Fi
   History/         SwiftData history and Settings
   Components/      colours, type, the press style
 LensirTests/       Swift Testing suites

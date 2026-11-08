@@ -26,11 +26,13 @@ struct ScanResult: Identifiable, Equatable {
     var payload: Payload
     var summary: ResultSummary
     var source: Source
+    var scannedAt: Date
 
-    init(raw: String, symbology: String, source: Source) {
+    init(raw: String, symbology: String, source: Source, scannedAt: Date = .now) {
         self.raw = raw
         self.symbology = symbology
         self.source = source
+        self.scannedAt = scannedAt
         payload = PayloadParser.parse(raw)
         summary = ResultLogic.summary(for: payload, raw: raw, symbology: symbology, canJoinWiFi: WiFiJoiner.isAvailable)
     }
@@ -98,29 +100,37 @@ final class ScannerModel {
         }
     }
 
+    /// The pill was tapped. The drawer animates itself up from the edge.
     func openDetection() {
         guard let detection else { return }
         lostTask?.cancel()
-        withAnimation(reduceMotion ? Motion.fade : Motion.morph) {
+        withAnimation(Motion.fade) {
             result = ScanResult(raw: detection.raw, symbology: detection.symbology, source: .camera)
         }
     }
 
-    func open(raw: String, symbology: String, source: ScanResult.Source) {
+    func open(raw: String, symbology: String, source: ScanResult.Source, scannedAt: Date = .now) {
         lostTask?.cancel()
-        withAnimation(reduceMotion ? Motion.fade : Motion.morph) {
+        withAnimation(Motion.fade) {
             detection = nil
             detectionSummary = nil
-            result = ScanResult(raw: raw, symbology: symbology, source: source)
+            result = ScanResult(raw: raw, symbology: symbology, source: source, scannedAt: scannedAt)
         }
     }
 
-    func closeResult() {
-        withAnimation(reduceMotion ? Motion.fade : Motion.morph) {
-            result = nil
+    /// The drawer has started closing: let the brackets go back to waiting
+    /// while it slides away.
+    func releaseDetection() {
+        lostTask?.cancel()
+        withAnimation(reduceMotion ? Motion.fade : Motion.snap) {
             detection = nil
             detectionSummary = nil
         }
+    }
+
+    /// The drawer is gone: drop the result, and the camera starts again.
+    func clearResult() {
+        result = nil
     }
 
     /// Put a code found by the demo camera straight into place, without the snap.

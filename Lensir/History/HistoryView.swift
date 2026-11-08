@@ -93,7 +93,7 @@ struct HistoryRow: View {
                 .frame(width: 28)
                 .accessibilityLabel(summary.isWarning ? "Warning" : "")
             VStack(alignment: .leading, spacing: 2) {
-                ResultSheet.title(summary)
+                ResultDrawer.title(summary)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .truncationMode(.middle)

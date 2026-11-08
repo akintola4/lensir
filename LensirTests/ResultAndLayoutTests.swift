@@ -145,9 +145,8 @@ struct ScanGeometryTests {
         #expect(center.y == 567)
     }
 
-    @Test func dimDeepensAsTheResultOpens() {
-        #expect(ScanGeometry.dimOpacity(found: false, sheetOpen: false) < ScanGeometry.dimOpacity(found: true, sheetOpen: false))
-        #expect(ScanGeometry.dimOpacity(found: true, sheetOpen: false) < ScanGeometry.dimOpacity(found: true, sheetOpen: true))
+    @Test func dimDeepensWhenACodeIsFound() {
+        #expect(ScanGeometry.dimOpacity(found: false) < ScanGeometry.dimOpacity(found: true))
     }
 }
 

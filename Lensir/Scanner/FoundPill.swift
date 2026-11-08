@@ -3,15 +3,13 @@
 //  Lensir
 //
 //  The white pill under a found code: an icon, what the code is, a chevron.
-//  Tapping it grows it into the result sheet.
+//  Tapping it slides the result drawer up from the bottom edge.
 //
 
 import SwiftUI
 
 struct FoundPill: View {
     var summary: ResultSummary
-    var namespace: Namespace.ID
-    var morphs: Bool
     var action: () -> Void
 
     var body: some View {
@@ -28,11 +26,7 @@ struct FoundPill: View {
             .padding(.leading, summary.pillIcon == .none ? 16 : 13)
             .padding(.trailing, 12)
             .frame(height: 34)
-            .background {
-                Capsule()
-                    .fill(.white)
-                    .morph(morphs, in: namespace)
-            }
+            .background(Capsule().fill(.white))
             // 34 pt to look at, 44 pt to hit.
             .padding(.vertical, 5)
             .contentShape(Rectangle())
@@ -74,17 +68,5 @@ struct FoundPill: View {
         var parts = [summary.kindLabel, summary.title]
         if summary.isWarning { parts.append("Warning") } else if summary.pillIcon == .lock { parts.append("Secure") }
         return parts.joined(separator: ", ")
-    }
-}
-
-/// The pill's capsule and the sheet's background share one geometry, so
-/// the pill grows into the sheet. Off with Reduce Motion: it fades instead.
-extension View {
-    @ViewBuilder func morph(_ enabled: Bool, in namespace: Namespace.ID) -> some View {
-        if enabled {
-            matchedGeometryEffect(id: "result-card", in: namespace)
-        } else {
-            self
-        }
     }
 }

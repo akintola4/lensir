@@ -50,8 +50,9 @@ nonisolated enum ScanGeometry {
         return CGPoint(x: x.rounded(), y: y.rounded())
     }
 
-    /// How dark the camera gets outside the brackets.
-    static func dimOpacity(found: Bool, sheetOpen: Bool) -> Double {
-        sheetOpen ? 0.66 : (found ? 0.55 : 0.52)
+    /// How dark the camera gets outside the brackets. The result drawer
+    /// deepens it further as it rises (DrawerLogic.dimOpacity).
+    static func dimOpacity(found: Bool) -> Double {
+        found ? 0.55 : 0.52
     }
 }

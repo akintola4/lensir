@@ -18,6 +18,7 @@ enum Palette {
     static let secondaryText = Color(red: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255)
     static let checkText = Color(red: 0xC7 / 255, green: 0xC7 / 255, blue: 0xCC / 255)
     static let warningText = Color(red: 0xE5 / 255, green: 0xE5 / 255, blue: 0xEA / 255)
+    static let grabber = Color(red: 0x48 / 255, green: 0x48 / 255, blue: 0x4A / 255)
     static let hint = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
     static let safe = Color(red: 0x34 / 255, green: 0xC7 / 255, blue: 0x59 / 255)
     static let warning = Color(red: 0xFF / 255, green: 0x69 / 255, blue: 0x61 / 255)
@@ -38,6 +39,7 @@ enum Typeface {
     static let secondaryButton = Font.system(.subheadline, design: .rounded).weight(.semibold)
     static let hint = Font.system(.subheadline, design: .rounded).weight(.semibold)
     static let pill = Font.system(.footnote, design: .monospaced).weight(.semibold)
+    static let sectionHeader = Font.system(.subheadline, design: .rounded).weight(.bold)
     static let body = Font.system(.subheadline, design: .rounded)
     static let monoBody = Font.system(.subheadline, design: .monospaced)
 }
@@ -45,11 +47,12 @@ enum Typeface {
 enum Metrics {
     /// Inset of the controls and the sheet from the screen edges.
     static let edge: CGFloat = 14
-    static let sheetRadius: CGFloat = 30
+    /// The drawer's top corners. Its other edges are flush with the screen.
+    static let drawerRadius: CGFloat = 28
     static let sheetPadding: CGFloat = 16
-    /// Inner radius = outer radius − padding, so the button's corners sit
-    /// parallel to the sheet's.
-    static let buttonRadius: CGFloat = sheetRadius - sheetPadding
+    /// 30 − 16, as approved: the button kept its radius when the floating
+    /// card became the edge drawer.
+    static let buttonRadius: CGFloat = 14
 }
 
 enum Motion {
@@ -57,8 +60,6 @@ enum Motion {
     static let snap = Animation.spring(duration: 0.22, bounce: 0)
     /// Brackets following a code that's moving in the frame.
     static let track = Animation.spring(duration: 0.12, bounce: 0)
-    /// The pill growing into the sheet.
-    static let morph = Animation.spring(duration: 0.34, bounce: 0)
     static let fade = Animation.easeOut(duration: 0.2)
     static let exit = Animation.easeIn(duration: 0.16)
 }

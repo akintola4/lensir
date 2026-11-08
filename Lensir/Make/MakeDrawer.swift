@@ -2,8 +2,9 @@
 //  MakeDrawer.swift
 //  Lensir
 //
-//  Make a code, in the same drawer a scan opens in. The code sits at the
-//  top and redraws as you type. Under it: a chip for each kind, the form
+//  Make a code, in the same drawer a scan opens in. The header is laid out
+//  like a scan's: the name on the left, the code on the right, redrawing
+//  as you type. Under it: a chip for each kind, the form
 //  for that kind, and two buttons, Show code (full screen, bright, to
 //  share or save) and Keep (into My codes). A link you make goes through
 //  the same checks as a link you scan, and a risky one asks before it's
@@ -33,6 +34,7 @@ struct MakeDrawer: View {
     /// Goes up on every keep, for its tick.
     @State private var keepCount = 0
     @AccessibilityFocusState private var previewFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var made: Result<String, CodeProblem> { CodeMaker.make(draft) }
     private var payload: String? { try? made.get() }
@@ -47,9 +49,34 @@ struct MakeDrawer: View {
     var body: some View {
         DrawerSurface(drawer: drawer, haptics: haptics, bottomInset: bottomInset, maxHeight: maxHeight,
                       expands: false, onClose: onClose) {
-            CodePreview(image: code, label: previewLabel)
-                .frame(maxWidth: .infinity)
-                .accessibilityFocused($previewFocused)
+            // Laid out like a scan's drawer: what it is on the left, the
+            // code where the scan's Share button sits.
+            // At the accessibility sizes the code goes above the name, so the
+            // name gets the whole width, as in My codes.
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+            layout {
+                if dynamicTypeSize.isAccessibilitySize {
+                    CodePreview(image: code, label: previewLabel)
+                        .accessibilityFocused($previewFocused)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    headerTitle
+                        .foregroundStyle(.white)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(draft.kind.title)
+                        .font(Typeface.kindLabel)
+                        .foregroundStyle(Palette.secondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // The code's own label says all of this.
+                .accessibilityHidden(true)
+                if !dynamicTypeSize.isAccessibilitySize {
+                    CodePreview(image: code, label: previewLabel)
+                        .accessibilityFocused($previewFocused)
+                }
+            }
         } content: {
             MakeForm(draft: $draft, problem: problem, report: shownReport, canMake: code != nil, isKept: isKept,
                      onShow: { attempt(.show) }, onKeep: { attempt(.keep) })
@@ -76,6 +103,20 @@ struct MakeDrawer: View {
         } message: { _ in
             Text(CodeMaker.safety(for: draft)?.findings.first?.message ?? "")
         }
+    }
+
+    /// What the code will be called once it's kept, as it's typed.
+    private var headerTitle: Text {
+        guard let payload, code != nil else { return Text("New code").font(Typeface.title) }
+        // A link's site, with any lookalike letter underlined in red, as a
+        // scanned one's title is.
+        if let report = shownReport, let title = AddressText.title(report) {
+            return Text(title).font(Typeface.monoTitle).typesettingLanguage(AddressText.noHyphens)
+        }
+        let name = CodeMaker.defaultName(for: draft)
+        return CodeMaker.display(raw: payload).monospaced
+            ? Text(AddressText.breakingAtDots(name)).font(Typeface.monoTitle).typesettingLanguage(AddressText.noHyphens)
+            : Text(name).font(Typeface.title)
     }
 
     private var previewLabel: String {
@@ -147,7 +188,7 @@ struct ShownCode: Identifiable, Equatable {
 struct CodePreview: View {
     var image: CGImage?
     var label: String
-    var side: CGFloat = 104
+    var side: CGFloat = 76
     @ScaledMetric(relativeTo: .title) private var placeholderIcon: CGFloat = 34
 
     var body: some View {
@@ -422,14 +463,9 @@ private struct MakeForm: View {
             if report.isSafe {
                 CheckLine(systemName: "checkmark", color: Palette.safe, text: report.safeSummary, textColor: Palette.checkText)
             } else {
+                // The header above shows the site with the swapped letters
+                // underlined, so "the underlined а" points at something.
                 VStack(alignment: .leading, spacing: 8) {
-                    // The site as it really reads, with the swapped letters
-                    // underlined, so "the underlined а" points at something.
-                    if !report.highlights.isEmpty, let title = AddressText.title(report, breaksAtDots: true) {
-                        Text(title)
-                            .font(Typeface.monoTitle)
-                            .padding(.bottom, 2)
-                    }
                     ForEach(Array(report.findings.enumerated()), id: \.offset) { _, finding in
                         CheckLine(systemName: "exclamationmark.triangle", color: Palette.warning, text: finding.message,
                                   textColor: Palette.warningText)

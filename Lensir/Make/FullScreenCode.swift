@@ -125,9 +125,12 @@ struct FullScreenCode: View {
 
     private var actions: some View {
         VStack(spacing: 14) {
-            Text(saveMessage ?? "Brightness turned up while this is open")
+            // Only says something after a save; the line is kept so the
+            // buttons don't jump when it does.
+            Text(saveMessage ?? " ")
                 .font(Typeface.kindLabel)
                 .foregroundStyle(Self.quiet)
+                .accessibilityHidden(saveMessage == nil)
                 .multilineTextAlignment(.center)
                 .contentTransition(.opacity)
             let layout = dynamicTypeSize.isAccessibilitySize

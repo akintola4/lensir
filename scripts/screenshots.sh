@@ -63,6 +63,8 @@ shot ax5/make-risky.png -LensirDemo make-risky
 shot ax5/make-show.png -LensirDemo make-show
 shot ax5/history.png -LensirDemo looking -LensirOpenHistory
 shot ax5/my-codes-empty.png -LensirDemo looking -LensirOpenHistory -LensirEmptyHistory
+# Domains wrap at a dot at this size, with the lookalike underline intact.
+shot ax5/lookalike.png -LensirDemo risky
 xcrun simctl ui "$UDID" content_size large
 
 xcrun simctl status_bar "$UDID" clear

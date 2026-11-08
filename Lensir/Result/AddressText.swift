@@ -29,10 +29,10 @@ enum AddressText {
         return text
     }
 
-    /// The site's name for the sheet's title, with the same red underlines.
-    /// `breaksAtDots` lets a long name wrap after a dot rather than be
-    /// hyphenated, which would look like part of the address.
-    static func title(_ report: SafetyReport, breaksAtDots: Bool = false) -> AttributedString? {
+    /// The site's name for a title, with the same red underlines. It wraps
+    /// after a dot rather than mid-word or hyphenated, which would look like
+    /// part of the address: "paystack." then "com", never "pay-" "stack".
+    static func title(_ report: SafetyReport, breaksAtDots: Bool = true) -> AttributedString? {
         guard let address = report.address, address.hasAuthority else { return nil }
         let offset = address.shortHostOffset
         let ranges = report.highlights.compactMap { range -> Range<Int>? in
@@ -63,6 +63,22 @@ enum AddressText {
         var result = AttributedString(text)
         result.foregroundColor = Palette.secondaryText
         result.font = Typeface.address
+        return result
+    }
+
+    /// Typesetting with no language: a part too long for its line breaks
+    /// where it must, without a hyphen that would read as part of the
+    /// address ("kolalogis-tics.test").
+    static let noHyphens = Locale.Language(identifier: "zxx")
+
+    /// A zero-width space after each dot, so a name like a domain wraps
+    /// between its parts instead of mid-word.
+    static func breakingAtDots(_ text: String) -> String {
+        var result = ""
+        for character in text {
+            result.append(character)
+            if character == "." { result.append("\u{200B}") }
+        }
         return result
     }
 

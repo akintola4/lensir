@@ -40,13 +40,6 @@ struct HistoryView: View {
                         }
                         .accessibilityLabel("Settings")
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: onMake) {
-                            Image(systemName: "plus")
-                        }
-                        .accessibilityLabel("Make a code")
-                        .accessibilityIdentifier("history-make")
-                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
@@ -171,11 +164,14 @@ struct MadeCodeRow: View {
             .frame(width: min(thumbnail, 72), height: min(thumbnail, 72))
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(code.name)
+                // The breaks are for the eye; VoiceOver gets the plain name.
+                Text(display.monospaced ? AddressText.breakingAtDots(code.name) : code.name)
+                    .accessibilityLabel(code.name)
                     .font(display.monospaced ? Typeface.monoTitle : Typeface.title)
                     .foregroundStyle(.white)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.middle)
+                    .typesettingLanguage(AddressText.noHyphens)
                 Text(MyCodesLogic.subtitle(raw: code.raw, date: code.date))
                     .font(Typeface.kindLabel)
                     .foregroundStyle(Palette.secondaryText)
@@ -189,23 +185,17 @@ struct MadeCodeRow: View {
     }
 }
 
-/// My codes before there are any: what it's for, and how to make one.
+/// My codes before there are any: what it's for, and the way in.
 struct MyCodesEmpty: View {
     var onMake: () -> Void
-    @ScaledMetric(relativeTo: .title2) private var icon: CGFloat = 26
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "qrcode")
-                .font(.system(size: icon, weight: .regular))
-                .foregroundStyle(Palette.secondaryText)
-                .padding(.bottom, 4)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 4) {
             Text("Keep the codes you show often")
                 .font(Typeface.title)
                 .foregroundStyle(.white)
                 .accessibilityAddTraits(.isHeader)
-            Text("Your Wi-Fi for guests, your shop's link, your number. Tap Make on the scanner, fill it in, then Keep. It's ready to show again in one tap.")
+            Text("Your Wi-Fi for guests, your shop's link, your number, one tap away.")
                 .font(Typeface.body)
                 .foregroundStyle(Palette.checkText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -213,7 +203,7 @@ struct MyCodesEmpty: View {
                 Text("Make a code").primaryButtonStyle()
             }
             .buttonStyle(PressableStyle())
-            .padding(.top, 8)
+            .padding(.top, 12)
             .accessibilityIdentifier("my-codes-make")
         }
         .padding(.vertical, 10)
@@ -242,6 +232,7 @@ struct HistoryRow: View {
                     .foregroundStyle(.white)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.middle)
+                    .typesettingLanguage(AddressText.noHyphens)
                 Text("\(summary.kindLabel) · \(record.date.formatted(date: .omitted, time: .shortened))")
                     .font(Typeface.kindLabel)
                     .foregroundStyle(Palette.secondaryText)

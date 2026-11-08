@@ -9,6 +9,7 @@
 
 import CoreGraphics
 import Testing
+import SwiftUI
 import UIKit
 @testable import Lensir
 
@@ -85,5 +86,21 @@ struct StillCreditTests {
             #expect(credit == 0 || scene == 0, "credit \(credit) and buttons \(scene) overlap at \(t) s")
         }
         #expect(SplashLogic.stillCreditOpacity(at: still.hold - SplashLogic.stillCreditFade, in: still) == 1)
+    }
+}
+
+@Suite("Domains wrap at dots")
+struct DomainBreakTests {
+    @Test func aBreakGoesAfterEachDot() {
+        #expect(AddressText.breakingAtDots("paystack.com") == "paystack.\u{200B}com")
+        #expect(AddressText.breakingAtDots("a.b.kolapay.ng") == "a.\u{200B}b.\u{200B}kolapay.\u{200B}ng")
+        #expect(AddressText.breakingAtDots("Ada Okafor") == "Ada Okafor")
+    }
+
+    @Test func titlesBreakAtDotsAndKeepTheUnderline() throws {
+        let title = try #require(AddressText.title(LinkSafety.check("https://payst\u{0430}ck.com/pay")))
+        #expect(String(title.characters) == "payst\u{0430}ck.\u{200B}com")
+        let underlined = title.runs.filter { $0.swiftUI.underlineStyle != nil }.map { String(title[$0.range].characters) }
+        #expect(underlined == ["\u{0430}"])
     }
 }

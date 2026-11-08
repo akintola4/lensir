@@ -36,7 +36,7 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 
 | A Wi-Fi code | A link | A lookalike link |
 |---|---|---|
-| ![The Make drawer over the scanner: the Kola Logistics Wi-Fi code at the top, chips for Wi-Fi, Link, Phone, Contact and Text, then Network, Password and Security, Show code and Keep in My codes](docs/screenshots/make-wifi.png) | ![The Make drawer on Link: kolalogistics.test/track typed in, the code above it, and "Secure · nothing odd in the address"](docs/screenshots/make-link.png) | ![A link with a Cyrillic "а" typed in: paystаck.com with the letter underlined in red and two warnings under it](docs/screenshots/make-risky.png) |
+| ![The Make drawer over the scanner: Kola Logistics and Wi-Fi on the left with the code beside them, chips for Wi-Fi, Link, Phone, Contact and Text, then Network, Password and Security, Show code and Keep in My codes](docs/screenshots/make-wifi.png) | ![The Make drawer on Link: kolalogistics.test/track typed in, the code beside the site's name, and "Secure · nothing odd in the address"](docs/screenshots/make-link.png) | ![A link with a Cyrillic "а" typed in: paystаck.com at the top with the letter underlined in red, and two warnings under the field](docs/screenshots/make-risky.png) |
 
 | Show code | My codes | My codes, empty |
 |---|---|---|
@@ -44,9 +44,9 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 
 At the largest text size (AX5):
 
-| Make, Wi-Fi | Make, a lookalike | Show code | My codes | Nothing yet |
-|---|---|---|---|---|
-| ![The Make drawer at AX5, scrolled to the top](docs/screenshots/ax5/make-wifi.png) | ![The lookalike warning at AX5, the site name wrapping at the dot](docs/screenshots/ax5/make-risky.png) | ![The full-screen code at AX5](docs/screenshots/ax5/make-show.png) | ![My codes at AX5, each code above its name](docs/screenshots/ax5/history.png) | ![My codes and History both empty at AX5](docs/screenshots/ax5/my-codes-empty.png) |
+| Make, Wi-Fi | Make, a lookalike | Show code | My codes | Nothing yet | A scanned lookalike |
+|---|---|---|---|---|---|
+| ![The Make drawer at AX5, scrolled to the top](docs/screenshots/ax5/make-wifi.png) | ![The lookalike warning at AX5, the code above the site name, which wraps at the dot](docs/screenshots/ax5/make-risky.png) | ![The full-screen code at AX5](docs/screenshots/ax5/make-show.png) | ![My codes at AX5, each code above its name](docs/screenshots/ax5/history.png) | ![My codes and History both empty at AX5](docs/screenshots/ax5/my-codes-empty.png) | ![A scanned lookalike at AX5: paystаck.com with the red underline, then the full address and the warnings](docs/screenshots/ax5/lookalike.png) |
 
 The Simulator has no camera, so these use the launch arguments below. They draw a stand-in camera with a real QR code on a printed card. `scripts/screenshots.sh` takes all of them.
 
@@ -68,9 +68,9 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
   | Text or a product barcode | Copy text | |
 
 - Every code you open goes into History, newest first and grouped by day. Swipe a row to delete it, or clear the lot. Tapping a row opens it again.
-- Make, the white button between the photo and History buttons, raises the same drawer to make a code. Pick Wi-Fi, Link, Phone, Contact or Text and fill it in. The code at the top redraws as you type. A link you make gets the same checks as one you scan, and if it looks risky, Show code and Keep both ask before going ahead. Typing `kolalogistics.test` is enough; Lensir adds `https://`.
+- Make, the white button between the photo and History buttons, raises the same drawer to make a code. Pick Wi-Fi, Link, Phone, Contact or Text and fill it in. The drawer's header reads like a scan's: what you're making on the left and its code on the right, redrawing as you type. A link you make gets the same checks as one you scan, and if it looks risky, Show code and Keep both ask before going ahead. Typing `kolalogistics.test` is enough; Lensir adds `https://`.
 - Show code puts the code full screen on white and turns the brightness all the way up until you close it. The phone won't lock while it's showing. Share sends the picture. Save to Photos asks only to add to your library, never to read it.
-- Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. The + in History makes a new one.
+- Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. With none kept yet, My codes has a Make a code button; otherwise Make on the scanner is the way in.
 - The photo button reads codes from a picture in your library. If there are several, you pick one from a list.
 - A torch button for dark rooms, and a Haptics switch in Settings (behind History).
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.

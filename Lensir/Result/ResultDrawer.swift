@@ -102,9 +102,14 @@ struct ResultDrawer: View {
     /// shown: the sheet, the photo list and History.
     static func title(_ summary: ResultSummary) -> Text {
         if let report = summary.safety, let title = AddressText.title(report) {
-            return Text(title).font(Typeface.monoTitle)
+            return Text(title).font(Typeface.monoTitle).typesettingLanguage(AddressText.noHyphens)
+                .accessibilityLabel(Text(summary.title))
         }
-        return Text(summary.title).font(summary.titleIsMonospaced ? Typeface.monoTitle : Typeface.title)
+        if summary.titleIsMonospaced {
+            return Text(AddressText.breakingAtDots(summary.title)).font(Typeface.monoTitle).typesettingLanguage(AddressText.noHyphens)
+                .accessibilityLabel(Text(summary.title))
+        }
+        return Text(summary.title).font(Typeface.title)
     }
 
     // MARK: - Details

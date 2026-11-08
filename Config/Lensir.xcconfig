@@ -1,0 +1,32 @@
+//
+//  Lensir.xcconfig
+//
+//  The only file to edit before running Lensir on your own iPhone.
+//
+//  LENSIR_BUNDLE_PREFIX  Something unique to you, e.g. com.yourname. The bundle
+//                        ID is built from it.
+//  DEVELOPMENT_TEAM      Your Team ID (Xcode > Settings > Accounts), or leave it
+//                        empty and pick the team in Signing & Capabilities.
+//
+//  The Simulator needs neither.
+//
+
+LENSIR_BUNDLE_PREFIX = foster
+DEVELOPMENT_TEAM =
+
+// Joining a Wi-Fi network from a code needs the Hotspot Configuration
+// capability, which a free (personal team) Apple account can't sign:
+// "Personal development teams ... do not support the Hotspot capability."
+// So it's off, and Wi-Fi codes offer "Copy password". With a paid developer
+// account, set this to YES (here or in Local.xcconfig) to get "Join Wi-Fi".
+LENSIR_WIFI_JOIN = NO
+
+LENSIR_ENTITLEMENTS_YES = Config/Lensir-WiFi.entitlements
+LENSIR_ENTITLEMENTS_NO =
+LENSIR_ENTITLEMENTS = $(LENSIR_ENTITLEMENTS_$(LENSIR_WIFI_JOIN))
+LENSIR_WIFI_CONDITION_YES = WIFI_JOIN
+LENSIR_WIFI_CONDITION_NO =
+LENSIR_WIFI_CONDITION = $(LENSIR_WIFI_CONDITION_$(LENSIR_WIFI_JOIN))
+
+// Optional, git-ignored overrides (your team and prefix) so they stay out of the repo.
+#include? "Local.xcconfig"

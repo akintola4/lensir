@@ -5,11 +5,11 @@
 //  What's inside a code, before anything opens, in a drawer attached to the
 //  bottom edge like shadcn/ui's Drawer. Compact, it shows what the approved
 //  sheet showed: the title in SF Mono with Share beside it, a small label,
-//  the address, one line of checks, one white main button and one plain
-//  one. A risky link swaps them: Copy becomes the main button and Open
-//  anyway turns red. Drag it up, or tap the grabber, and Details appear
-//  underneath: every check, every field, the raw text and when it was
-//  scanned.
+//  the address, then for a link what's wrong with it and every check as a
+//  chip, one white main button and one plain one. A risky link swaps
+//  them: Copy becomes the main button and Open anyway turns red. Drag it
+//  up, or tap the grabber, and Details appear underneath: any field
+//  compact left out, the raw text and when it was scanned.
 //
 //  The drawer itself (its frame, grabber, dragging and scrolling) is
 //  DrawerSurface, shared with Make; this view is what's in it.
@@ -125,7 +125,7 @@ struct ResultDrawer: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel("Address: \(link)")
-                checks(report)
+                CheckTally(report: report, drawer: drawer)
             }
         case .wifi(let wifi):
             fieldRows(ResultDetails.compactFields(for: result.payload))
@@ -144,20 +144,6 @@ struct ResultDrawer: View {
                 .frame(maxHeight: 220)
                 .fixedSize(horizontal: false, vertical: true)
             }
-        }
-    }
-
-    @ViewBuilder private func checks(_ report: SafetyReport) -> some View {
-        if report.isSafe {
-            CheckLine(systemName: "checkmark", color: Palette.safe, text: report.safeSummary, textColor: Palette.checkText)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(report.findings.enumerated()), id: \.offset) { _, finding in
-                    CheckLine(systemName: "exclamationmark.triangle", color: Palette.warning, text: finding.message, textColor: Palette.warningText)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Warning. " + report.findings.map(\.message).joined(separator: " "))
         }
     }
 
@@ -195,16 +181,8 @@ struct ResultDrawer: View {
                 .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
 
-            if let report = summary.safety {
-                VStack(alignment: .leading, spacing: 10) {
-                    FieldLabel("Checks")
-                    ForEach(Array(ResultDetails.checks(for: report).enumerated()), id: \.offset) { _, check in
-                        CheckRow(check: check)
-                    }
-                }
-            } else {
-                fieldRows(ResultDetails.moreFields(for: result.payload))
-            }
+            // A link's checks are all in compact already, as chips.
+            fieldRows(ResultDetails.moreFields(for: result.payload))
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -400,28 +378,6 @@ struct CheckLine: View {
                 .foregroundStyle(textColor)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-}
-
-/// One check under Details: a green tick when it passed, a red cross when
-/// it didn't.
-struct CheckRow: View {
-    var check: CheckItem
-    @ScaledMetric(relativeTo: .footnote) private var iconWidth: CGFloat = 16
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: check.passed ? "checkmark" : "xmark")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(check.passed ? Palette.safe : Palette.warning)
-                .frame(width: iconWidth)
-            Text(check.title)
-                .font(Typeface.check)
-                .foregroundStyle(check.passed ? Palette.checkText : Palette.warningText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(check.title): \(check.passed ? "passed" : "failed")")
     }
 }
 

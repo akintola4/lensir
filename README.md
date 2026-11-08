@@ -14,15 +14,15 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 
 | Looking | Found | A safe link |
 |---|---|---|
-| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The drawer for paystack.com: the full address, "Secure · the real paystack.com" and an Open link button](docs/screenshots/safe-link.png) |
+| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The drawer for paystack.com: the full address, "Secure · the real paystack.com" over nine green check chips, and an Open link button](docs/screenshots/safe-link.png) |
 
 | A safe link, expanded | A lookalike | A lookalike, expanded |
 |---|---|---|
-| ![The drawer pulled up: Details with every check passed and the scanned text](docs/screenshots/safe-expanded.png) | ![Red brackets and a drawer saying the underlined "а" is a Cyrillic letter, so this is not paystack.com](docs/screenshots/lookalike.png) | ![Details for the lookalike: "The real site" and "Plain letters" crossed out in red](docs/screenshots/lookalike-expanded.png) |
+| ![The drawer pulled up: every check a green chip, then Details with the scanned text](docs/screenshots/safe-expanded.png) | ![Red brackets and a drawer saying the underlined "а" is a Cyrillic letter, so this is not paystack.com, with red Real site and Plain letters chips first](docs/screenshots/lookalike.png) | ![The lookalike pulled up: the red chips first, then Details with the scanned text](docs/screenshots/lookalike-expanded.png) |
 
 | A short link over http | Wi-Fi | Wi-Fi, expanded |
 |---|---|---|
-| ![A bit.ly link: not secure, and a link shortener that hides where it goes](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) | ![Details for the Wi-Fi code: the raw text and a Scan again button](docs/screenshots/wifi-expanded.png) |
+| ![A bit.ly link: not secure, and a link shortener that hides where it goes, with red https and Not shortened chips](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) | ![Details for the Wi-Fi code: the raw text and a Scan again button](docs/screenshots/wifi-expanded.png) |
 
 | Contact | Several codes in one photo | History |
 |---|---|---|
@@ -61,7 +61,7 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 ## What it does
 
 - The camera fills the screen. Four white corner brackets wait in the middle with the rest dimmed. When a code turns up they snap onto it in about 200 ms with a light tap, and a white pill under the code names what it is: the site for a link, the network for Wi-Fi, the person for a contact card.
-- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). You can drag it from anywhere, not only the grabber. It follows your finger exactly, gives a little past the top, and when you let go a spring carries on at the speed you threw it, with a small bounce. Let go 40% of the way down, or flick it, and it closes. Catch it while it's closing and it stops under your finger. The detent tick plays the moment it lands. If Details are scrolled down, dragging down scrolls them back to the top first, then pulls the drawer down in the same movement. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, any field the compact drawer left out, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
+- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). You can drag it from anywhere, not only the grabber. It follows your finger exactly, gives a little past the top, and when you let go a spring carries on at the speed you threw it, with a small bounce. Let go 40% of the way down, or flick it, and it closes. Catch it while it's closing and it stops under your finger. The detent tick plays the moment it lands. If Details are scrolled down, dragging down scrolls them back to the top first, then pulls the drawer down in the same movement. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows any field the compact drawer left out, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
 
   | Code | Main button | Second button |
   |---|---|---|
@@ -110,6 +110,8 @@ Lensir stops before that. The brackets find the code and the pill tells you the 
 ## The checks
 
 All of this runs on the phone, in `Lensir/Logic/LinkSafety.swift`, without looking anything up. Each problem shows as one plain sentence in the drawer, and lookalike letters are underlined in red.
+
+Under the sentences, each check gets a chip with a word or two on it, like "https" or "Not shortened". Failed checks come first, in red with a cross; the rest have a green tick. VoiceOver reads the full check and whether it passed. A clean link has a single line instead, such as "Secure · the real paystack.com", and nine green chips. Why it looks like this, and the versions that lost, are in [docs/decisions/checks.md](docs/decisions/checks.md).
 
 - Plain http. The drawer says anyone on the same Wi‑Fi can see what you send.
 - Link shorteners: bit.ly, tinyurl.com, t.co, goo.gl, ow.ly, is.gd, buff.ly, cutt.ly, rebrand.ly, shorturl.at, rb.gy, qrco.de and about 25 more. A short link hides where it goes, and finding out would mean going online.
@@ -179,7 +181,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 259 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 20 in `LensirUITests`. The Swift Testing ones cover:
+There are 269 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 20 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -191,7 +193,8 @@ There are 259 tests in `LensirTests` (two of them only draw the widget screensho
 - the links handed to Phone, Messages, Mail and Maps
 - reading three codes out of one photo with Vision, in order
 - the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, bouncing only after a drag, snapping back quickly, landing on the haptic, being caught mid-close, and the dim and background scale that follow its height frame by frame
-- what the drawer lists: a pass or fail row per check, a few fields in compact, and only the rest under Details
+- what the drawer lists: a few fields in compact, and only the rest under Details
+- the chips under a link: failed checks first, the rest in their usual order, each with a short label and the full title, and when they start to come in as the drawer rises
 - the opening animation: phases in order inside 0.76 s, a first frame the same size and place as the launch image, the hunt, the lock's one small overshoot, an end state exactly equal to the scanner's brackets, the credit coming and going without popping, and the Reduce Motion path
 - `lensir://scan`: which links it reads and which it ignores, the URL scheme in the Info.plist, the intent and the link landing in the same inbox, what the link closes, and the 0.5 s opening it plays on a cold launch (starts on the launch mark, ends on the scanner's brackets, no credit)
 - who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top

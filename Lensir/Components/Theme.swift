@@ -120,6 +120,11 @@ enum Palette {
         /// The warning red on an ink fill (the found pill): #FF6961 is too
         /// light on white, #D70015 too dark on black.
         static let warningOnInk = Swatch(dark: 0xD70015, light: 0xFF6961)
+        /// A failed check's chip: the warning red at about a sixth over the
+        /// drawer on dark and a tenth over it on light, as solid colours so
+        /// the label's contrast doesn't depend on what's behind. A little
+        /// deeper with Increase Contrast.
+        static let failChip = Swatch(dark: 0x452A2A, light: 0xFBE6E8, darkHigh: 0x5A3030, lightHigh: 0xF5D0D4)
         /// "Open anyway": a lighter red on dark, for text at 15 pt.
         static let warningLabel = Swatch(dark: 0xFF8780, light: 0xD70015)
         /// A shown code and its page: black on white in either appearance,
@@ -139,6 +144,7 @@ enum Palette {
             "warningOnInk": warningOnInk, "controlShadow": controlShadow, "backdrop": backdrop, "separator": separator,
             "disabledFill": disabledFill, "lensWash": lensWash, "bracketHalo": bracketHalo, "warningLabel": warningLabel,
             "paper": paper, "paperInk": paperInk, "paperQuiet": paperQuiet, "paperButton": paperButton,
+            "failChip": failChip,
         ]
     }
 
@@ -175,6 +181,7 @@ enum Palette {
     static let paperInk = Swatches.paperInk.color
     static let paperQuiet = Swatches.paperQuiet.color
     static let paperButton = Swatches.paperButton.color
+    static let failChip = Swatches.failChip.color
 }
 
 enum Typeface {

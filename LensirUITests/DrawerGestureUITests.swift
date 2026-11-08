@@ -58,11 +58,11 @@ final class DrawerGestureUITests: XCTestCase {
     /// first, then carries on and collapses the drawer, in one movement.
     func testDragDownScrollsBackThenCollapses() {
         launch("long-expanded")
-        let checks = app.staticTexts["Checks"]
-        XCTAssertTrue(checks.waitForExistence(timeout: 3))
-        let before = checks.frame.minY
+        let label = app.staticTexts["Scanned text"]
+        XCTAssertTrue(label.waitForExistence(timeout: 3))
+        let before = label.frame.minY
         drag(from: 0.85, to: 0.45)
-        XCTAssertLessThan(checks.frame.minY, before - 40, "Details should have scrolled")
+        XCTAssertLessThan(label.frame.minY, before - 40, "Details should have scrolled")
         expectLabel("Collapse details")
         drag(from: 0.4, to: 0.99)
         expectLabel("Expand details")

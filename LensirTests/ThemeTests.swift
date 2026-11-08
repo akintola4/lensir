@@ -56,6 +56,7 @@ struct ThemeTests {
         ("paperInk", "#000000", "#000000"),
         ("paperQuiet", "#6E6E73", "#6E6E73"),
         ("paperButton", "#E5E5EA", "#E5E5EA"),
+        ("failChip", "#452A2A", "#FBE6E8"),
     ]
 
     @Test(arguments: expected)
@@ -113,6 +114,8 @@ struct ThemeTests {
         #expect(try resolve("secondaryText", .dark, high: true).0 == "#AEAEB2")
         #expect(try resolve("checkText", .light, high: true).0 == "#1C1C1E")
         #expect(try resolve("grabber", .light, high: true) == ("#6E6E73", 1))
+        #expect(try resolve("failChip", .light, high: true).0 == "#F5D0D4")
+        #expect(try resolve("failChip", .dark, high: true).0 == "#5A3030")
     }
 
     /// The veil dims dark mode exactly as before: 52% looking, 55% found,

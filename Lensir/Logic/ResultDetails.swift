@@ -16,8 +16,11 @@ nonisolated struct DetailField: Equatable, Sendable {
 }
 
 nonisolated struct CheckItem: Equatable, Sendable {
+    /// The whole check, for VoiceOver: "Secure connection (https)".
     var title: String
     var passed: Bool
+    /// A word or two for its chip, naming what a pass means: "https".
+    var label: String
 }
 
 nonisolated enum ResultDetails {
@@ -79,25 +82,26 @@ nonisolated enum ResultDetails {
         return work.isEmpty ? nil : work
     }
 
-    /// One row per check, passed or not. Scripts and data pages get a single
-    /// failing row: nothing else about them matters.
+    /// One per check, passed or not, in a fixed order. Scripts and data
+    /// pages get a single failing check: nothing else about them matters.
     static func checks(for report: SafetyReport) -> [CheckItem] {
         let kinds = Set(report.findings.map(\.kind))
         guard let address = report.address, !kinds.contains(.script) else {
-            return [CheckItem(title: "A web address, not a script or a packed page", passed: false)]
+            return [CheckItem(title: "A web address, not a script or a packed page", passed: false, label: "Web address")]
         }
         let isIP = kinds.contains(.ipAddress)
         return [
-            CheckItem(title: "A web address (\(address.scheme):)", passed: true),
-            CheckItem(title: "Secure connection (https)", passed: address.scheme == "https"),
-            CheckItem(title: "A named site, not a bare IP address", passed: !isIP),
-            CheckItem(title: "The real site, not a lookalike", passed: !isIP && !kinds.contains(.lookalike)),
+            CheckItem(title: "A web address (\(address.scheme):)", passed: true, label: "Web address"),
+            CheckItem(title: "Secure connection (https)", passed: address.scheme == "https", label: "https"),
+            CheckItem(title: "A named site, not a bare IP address", passed: !isIP, label: "Named site"),
+            CheckItem(title: "The real site, not a lookalike", passed: !isIP && !kinds.contains(.lookalike), label: "Real site"),
             CheckItem(title: "Plain letters, no punycode or mixed alphabets",
-                      passed: !kinds.contains(.mixedScript) && !kinds.contains(.otherAlphabet) && !address.host.contains("xn--")),
-            CheckItem(title: "No “@” hiding the real site", passed: !kinds.contains(.userInfo)),
-            CheckItem(title: "Not a link shortener", passed: !kinds.contains(.shortener)),
-            CheckItem(title: "A normal number of subdomains", passed: !kinds.contains(.manySubdomains)),
-            CheckItem(title: "A name that doesn't look made up", passed: !kinds.contains(.randomName)),
+                      passed: !kinds.contains(.mixedScript) && !kinds.contains(.otherAlphabet) && !address.host.contains("xn--"),
+                      label: "Plain letters"),
+            CheckItem(title: "No “@” hiding the real site", passed: !kinds.contains(.userInfo), label: "No @ trick"),
+            CheckItem(title: "Not a link shortener", passed: !kinds.contains(.shortener), label: "Not shortened"),
+            CheckItem(title: "A normal number of subdomains", passed: !kinds.contains(.manySubdomains), label: "Few subdomains"),
+            CheckItem(title: "A name that doesn't look made up", passed: !kinds.contains(.randomName), label: "Real-looking name"),
         ]
     }
 }

@@ -191,7 +191,7 @@ struct ResultDetailsTests {
     }
 
     @Test func scriptsGetOneFailingRow() {
-        #expect(ResultDetails.checks(for: LinkSafety.check("javascript:alert(1)")) == [CheckItem(title: "A web address, not a script or a packed page", passed: false)])
+        #expect(ResultDetails.checks(for: LinkSafety.check("javascript:alert(1)")) == [CheckItem(title: "A web address, not a script or a packed page", passed: false, label: "Web address")])
     }
 
     @Test func wifiShowsPasswordAndSecurityInCompactAndNothingMore() {

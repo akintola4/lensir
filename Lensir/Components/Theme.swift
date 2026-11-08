@@ -112,9 +112,12 @@ enum Palette {
         /// black to white: a spotlight, the way the black veil is one in
         /// dark. Once a code is found the code's own paper is the light.
         static let lensWash = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0, lightAlpha: 0.92)
-        /// Light only: a white rim under the black brackets, so they hold at
-        /// least 3:1 against whatever the camera sees.
-        static let bracketHalo = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0)
+        /// A rim under the brackets, so they hold at least 3:1 against
+        /// whatever the camera sees: white under the black brackets in light,
+        /// black at 60% under the white ones in dark. Over a dark scene the
+        /// dark rim disappears into the veil; over a sunlit one it's what
+        /// keeps the white brackets from melting into the window.
+        static let bracketHalo = Swatch(dark: 0x000000, light: 0xFFFFFF, darkAlpha: 0.6)
         static let safe = Swatch(dark: 0x34C759, light: 0x248A3D)
         static let warning = Swatch(dark: 0xFF6961, light: 0xD70015)
         /// The warning red on an ink fill (the found pill): #FF6961 is too

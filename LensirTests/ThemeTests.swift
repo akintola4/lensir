@@ -83,7 +83,7 @@ struct ThemeTests {
         #expect(try resolve("tileEdge", .light) == ("#000000", 0.1))
         #expect(try resolve("controlShadow", .dark).1 == 0)
         #expect(try resolve("lensWash", .dark).1 == 0)
-        #expect(try resolve("bracketHalo", .dark).1 == 0)
+        #expect(try resolve("bracketHalo", .dark) == ("#000000", 0.6))
         // Light: hairlines of black that darken whatever they sit on.
         #expect(try resolve("controlEdge", .light) == ("#000000", 0.12))
         #expect(try resolve("drawerEdge", .light) == ("#000000", 0.08))

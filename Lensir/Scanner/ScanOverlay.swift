@@ -43,7 +43,8 @@ struct ScanOverlay: View {
                 .fill(Palette.lensWash.opacity(washesWindow ? dim : 0))
             if showsBrackets {
                 ZStack {
-                    // Light: a white rim, so black brackets hold over a dark scene.
+                    // A rim: white under black brackets in light, dark under white
+                    // ones in dark, so they hold over any scene.
                     BracketsShape(frame: frame)
                         .stroke(Palette.bracketHalo, style: StrokeStyle(lineWidth: stroke + Self.haloWidth * 2, lineCap: .round, lineJoin: .round))
                     BracketsShape(frame: frame)
@@ -59,7 +60,7 @@ struct ScanOverlay: View {
         .accessibilityHidden(true)
     }
 
-    /// The white rim's width each side of a light-mode bracket.
+    /// The rim's width each side of a bracket.
     static let haloWidth: CGFloat = 1.5
 }
 

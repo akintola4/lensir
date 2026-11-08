@@ -11,7 +11,7 @@
 //  The Simulator needs neither.
 //
 
-LENSIR_BUNDLE_PREFIX = foster
+LENSIR_BUNDLE_PREFIX = com.example
 DEVELOPMENT_TEAM =
 
 // The app and its widget extension (the Control Center control and the Lock

@@ -96,9 +96,10 @@ final class DrawerState {
     }
 
     /// Where the drag should end up. `velocity` is the gesture's, positive downward.
-    func dragEnded(velocity: CGFloat) -> DrawerSnap {
+    func dragEnded(velocity: CGFloat, expands: Bool = true) -> DrawerSnap {
         dragStart = nil
-        return DrawerLogic.snap(height: height, velocity: -velocity, compact: compactHeight, expanded: expandedHeight, from: snap)
+        return DrawerLogic.snap(height: height, velocity: -velocity, compact: compactHeight, expanded: expandedHeight,
+                                from: snap, expands: expands)
     }
 
     // Derived values the screen ties to the drawer's height.

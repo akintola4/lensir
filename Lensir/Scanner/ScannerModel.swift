@@ -59,6 +59,8 @@ final class ScannerModel {
     /// Worked out once per new code, not on every camera frame.
     private(set) var detectionSummary: ResultSummary?
     var result: ScanResult?
+    /// The Make drawer is up.
+    var making = false
     var torchOn = false
     /// Changes each time a new code is found; drives the haptic, which is
     /// the warning when the code gets a "check this" verdict.
@@ -72,13 +74,16 @@ final class ScannerModel {
     /// brackets before they've become the viewfinder.
     var acceptsCodes = true
 
+    /// A drawer covers the camera: a result, or Make.
+    var drawerOpen: Bool { result != nil || making }
+
     private var lostTask: Task<Void, Never>?
     private var noticeTask: Task<Void, Never>?
 
     /// The camera sees a code. A new one snaps the brackets onto it with a
     /// haptic; the same one moving just pulls them along.
     func found(_ new: Detection) {
-        guard result == nil, acceptsCodes else { return }
+        guard !drawerOpen, acceptsCodes else { return }
         lostTask?.cancel()
         let isNew = detection?.raw != new.raw
         if isNew {
@@ -97,7 +102,7 @@ final class ScannerModel {
     /// The code left the frame. Wait a moment before letting go, so a shaky
     /// hand doesn't make the pill flicker away just as you reach for it.
     func lost() {
-        guard result == nil, detection != nil else { return }
+        guard !drawerOpen, detection != nil else { return }
         lostTask?.cancel()
         lostTask = Task {
             try? await Task.sleep(for: .milliseconds(700))
@@ -137,9 +142,20 @@ final class ScannerModel {
         }
     }
 
+    /// Make was tapped: let go of any code in view and raise the Make drawer.
+    func startMaking() {
+        lostTask?.cancel()
+        withAnimation(Motion.fade) {
+            detection = nil
+            detectionSummary = nil
+            making = true
+        }
+    }
+
     /// The drawer is gone: drop the result, and the camera starts again.
     func clearResult() {
         result = nil
+        making = false
     }
 
     /// Put a code found by the demo camera straight into place, without the snap.

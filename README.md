@@ -1,6 +1,6 @@
 # Lensir
 
-Lensir is a QR code scanner for iPhone that works with no signal. Point it at a code and it tells you what's inside before anything opens. If the code is a link, it checks the address for the tricks scam codes use.
+Lensir is a QR code scanner for iPhone that works with no signal. Point it at a code and it tells you what's inside before anything opens. If the code is a link, it checks the address for the tricks scam codes use. It makes codes too: your Wi-Fi for guests, a link, your number.
 
 It comes from the same place as [Pocket](https://github.com/akintola4/pocket) and [Tape](https://github.com/akintola4/tape): small phone tools that keep working offline. Lensir has no network code at all. The camera, the checks and your history all stay on the phone.
 
@@ -32,6 +32,22 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 |---|---|
 | ![Lensir needs the camera, with an Open Settings button](docs/screenshots/camera-denied.png) | ![No camera here, with a Choose a photo button](docs/screenshots/no-camera.png) |
 
+### Making a code
+
+| A Wi-Fi code | A link | A lookalike link |
+|---|---|---|
+| ![The Make drawer over the scanner: the Kola Logistics Wi-Fi code at the top, chips for Wi-Fi, Link, Phone, Contact and Text, then Network, Password and Security, Show code and Keep in My codes](docs/screenshots/make-wifi.png) | ![The Make drawer on Link: kolalogistics.test/track typed in, the code above it, and "Secure · nothing odd in the address"](docs/screenshots/make-link.png) | ![A link with a Cyrillic "а" typed in: paystаck.com with the letter underlined in red and two warnings under it](docs/screenshots/make-risky.png) |
+
+| Show code | My codes | My codes, empty |
+|---|---|---|
+| ![The Wi-Fi code full screen on white: "Point your camera here to join", Kola Logistics, Wi-Fi · WPA/WPA2, Share and Save to Photos](docs/screenshots/make-show.png) | ![History with My codes at the top: the Kola Logistics Wi-Fi, kolalogistics.test and a phone number, each with a small code, then today's scans](docs/screenshots/history.png) | ![My codes with nothing kept yet: "Keep the codes you show often", what it's for, and a Make a code button, above the scans](docs/screenshots/my-codes-empty.png) |
+
+At the largest text size (AX5):
+
+| Make, Wi-Fi | Make, a lookalike | Show code | My codes | Nothing yet |
+|---|---|---|---|---|
+| ![The Make drawer at AX5, scrolled to the top](docs/screenshots/ax5/make-wifi.png) | ![The lookalike warning at AX5, the site name wrapping at the dot](docs/screenshots/ax5/make-risky.png) | ![The full-screen code at AX5](docs/screenshots/ax5/make-show.png) | ![My codes at AX5, each code above its name](docs/screenshots/ax5/history.png) | ![My codes and History both empty at AX5](docs/screenshots/ax5/my-codes-empty.png) |
+
 The Simulator has no camera, so these use the launch arguments below. They draw a stand-in camera with a real QR code on a printed card. `scripts/screenshots.sh` takes all of them.
 
 ## What it does
@@ -52,6 +68,9 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
   | Text or a product barcode | Copy text | |
 
 - Every code you open goes into History, newest first and grouped by day. Swipe a row to delete it, or clear the lot. Tapping a row opens it again.
+- Make, the white button between the photo and History buttons, raises the same drawer to make a code. Pick Wi-Fi, Link, Phone, Contact or Text and fill it in. The code at the top redraws as you type. A link you make gets the same checks as one you scan, and if it looks risky, Show code and Keep both ask before going ahead. Typing `kolalogistics.test` is enough; Lensir adds `https://`.
+- Show code puts the code full screen on white and turns the brightness all the way up until you close it. The phone won't lock while it's showing. Share sends the picture. Save to Photos asks only to add to your library, never to read it.
+- Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. The + in History makes a new one.
 - The photo button reads codes from a picture in your library. If there are several, you pick one from a list.
 - A torch button for dark rooms, and a Haptics switch in Settings (behind History).
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.
@@ -100,7 +119,8 @@ The checks only read the address. They can't tell whether a site you've never he
 
 - There's no networking code in the app. It never sends a code, a photo or your history anywhere. Links only leave the phone when you press Open and your browser takes over.
 - Photos are read with Vision on the phone. Lensir only sees the photo you pick; it doesn't ask for your library.
-- History is stored with SwiftData in the app's own container. Delete the app and it's gone.
+- History and My codes are stored with SwiftData, in one store in the app's own container. Delete the app and they're gone.
+- Codes are drawn on the phone with CoreImage. Saving one to Photos needs add-only access, so Lensir can put a picture in your library but can't see what's there.
 - The camera permission is only used to read codes.
 
 ## Build and run
@@ -149,7 +169,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 166 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 10 in `LensirUITests`. The Swift Testing ones cover:
+There are 220 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 12 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -165,8 +185,15 @@ There are 166 tests in `LensirTests` (two of them only draw the widget screensho
 - the opening animation: phases in order inside 0.76 s, a first frame the same size and place as the launch image, the hunt, the lock's one small overshoot, an end state exactly equal to the scanner's brackets, the credit coming and going without popping, and the Reduce Motion path
 - `lensir://scan`: which links it reads and which it ignores, the URL scheme in the Info.plist, the intent and the link landing in the same inbox, what the link closes, and the 0.5 s opening it plays on a cold launch (starts on the launch mark, ends on the scanner's brackets, no credit)
 - who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top
+- making codes: the text for each kind, `\ ; , : "` escaped in Wi-Fi names and passwords, links finished with `https://`, unfinished ones refused, the WPA password minimum, and the size limit
+- every kind of made code parsed back by PayloadParser with the same fields, and drawn, then read off the picture by Vision
+- the drawn code: a four-module quiet zone, only black and white pixels, and nearest-neighbour scaling
+- a made lookalike link getting exactly the report a scanned one gets
+- My codes: keeping the same code twice, renaming, the kind and date on each row, the store it shares with History, and clearing History leaving My codes alone
+- the brightness going up and back once, even if you leave the app and come back
+- the Make drawer's single height, VoiceOver going back to Make when it closes, and the tick on Keep
 
-`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled (on a long link, so Details scroll), by the header, up from the content, a flick to close, and a drag that starts on Open link, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
+`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled (on a long link, so Details scroll), by the header, up from the content, a flick to close, and a drag that starts on Open link, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Two more make a code with the keyboard: one types a link, keeps it, finds it in My codes and opens it full screen; the other types a short link and checks that Keep asks first. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -176,7 +203,8 @@ A few are in the scheme, switched off. Turn them on under Product › Scheme ›
 
 - `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded`, `contact-expanded` and `long-expanded` (a long payment link whose Details scroll) open it pulled all the way up.
 - `-LensirDemo drawer-tour` plays the drawer through by itself, since you can't drag in the Simulator: the brackets snap, the drawer rises, expands, settles back and is flicked away. It's how the recording in `~/Movies/Lensir drawer/` was made.
-- `-LensirOpenHistory` opens History on launch, filled with demo scans. Add `-LensirEmptyHistory` to see it empty.
+- `-LensirDemo make-link` opens the Make drawer filled in. The others are `make-wifi`, `make-risky` (a lookalike link) and `make-show` (the Wi-Fi code full screen).
+- `-LensirOpenHistory` opens History on launch, filled with demo scans and My codes. Add `-LensirEmptyHistory` to see it empty, or `-LensirEmptyCodes` for scans with no My codes.
 - `-LensirNoSplash` skips the opening animation, for screenshots.
 - `-LensirSplashSlow` plays the opening animation 4× slower, for tuning it.
 - `-LensirSplashAt 0.3` holds the opening animation at that many seconds in, for stills. It never moves on to the scanner.
@@ -200,18 +228,20 @@ Demo runs keep history in memory, so they never touch your real history.
 Lensir/            the app
   Logic/           pure and tested: PayloadParser, LinkSafety, Confusables, Brands,
                    Punycode, LinkAddress, ResultSummary, ResultDetails, ScanGeometry,
-                   DrawerLogic, HistoryLogic, ScanRouting
+                   DrawerLogic, HistoryLogic, ScanRouting, CodeMaker, MyCodesLogic
   Scanner/         the screen: camera (VisionKit, with an AVFoundation fallback),
                    brackets, pill, photos, demo scenes
-  Result/          the drawer and its state, the address text, saving contacts, joining Wi-Fi
+  Result/          the drawer (DrawerSurface, shared with Make) and its state, the address
+                   text, saving contacts, joining Wi-Fi
+  Make/            the Make drawer, drawing codes, the full-screen code
   Splash/          the opening animation: SplashLogic (pure, tested), the dot, ring and credit
-  History/         SwiftData history and Settings
+  History/         SwiftData history, My codes and Settings
   Components/      colours, type, the press style
 Shared/            in the app and the widget: the brackets, lensir://scan, OpenScannerIntent,
                    the Lock Screen widget's views
 LensirWidget/      the extension: the Control Center control and the Lock Screen widget
 LensirTests/       Swift Testing suites
-LensirUITests/     real-touch drawer gesture tests and lensir://scan (XCTest)
+LensirUITests/     real-touch drawer gesture tests, lensir://scan and making a code (XCTest)
 Config/            Lensir.xcconfig (bundle prefix, team, App Group, Wi-Fi join), Info.plists, entitlements
 scripts/           screenshots, the splash recording, the icon, the launch mark and the control's symbol
 ```

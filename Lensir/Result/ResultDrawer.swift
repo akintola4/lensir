@@ -11,8 +11,8 @@
 //  underneath: every check, every field, the raw text and when it was
 //  scanned.
 //
-//  The drawer's height and physics live in DrawerState and DrawerLogic;
-//  this view only draws the content and reports drags and sizes.
+//  The drawer itself (its frame, grabber, dragging and scrolling) is
+//  DrawerSurface, shared with Make; this view is what's in it.
 //
 
 import SwiftUI
@@ -34,156 +34,28 @@ struct ResultDrawer: View {
     @State private var copyCount = 0
     @State private var savingContact = false
     @State private var wifiStatus: WiFiStatus?
-    /// Grabber plus header: always a drag handle, pinned above the scroll.
-    @State private var handleHeight: CGFloat = 0
-    /// Where the handle is on screen, to tell where a drag started. Kept in
-    /// a reference rather than state: it changes on every frame the drawer
-    /// moves, and nothing drawn depends on it.
-    @State private var handle = HandleFrame()
-    @State private var compactBodyHeight: CGFloat = 0
-    @State private var scrollContentHeight: CGFloat = 0
-    @State private var scrollOffset: CGFloat = 0
-    @State private var scrollPosition = ScrollPosition(edge: .top)
-    @State private var dragState = DrawerDrag()
-    @State private var dragStartsInHandle = false
-    /// Set while, and just after, the drawer follows a finger. The drawer
-    /// moves with the finger, so a drag that starts on a button also ends
-    /// on it; this keeps that release from counting as a tap.
-    @State private var suppressTaps = false
     @AccessibilityFocusState private var titleFocused: Bool
 
     private var summary: ResultSummary { result.summary }
-    private var compactHeight: CGFloat { handleHeight + compactBodyHeight }
-    private var fullHeight: CGFloat { handleHeight + scrollContentHeight }
-    private var expandedHeight: CGFloat { min(fullHeight, maxHeight) }
-    /// Taller than the screen allows: once expanded, Details scroll.
-    private var overflows: Bool { fullHeight > maxHeight + 0.5 }
-    private var canScroll: Bool { overflows && drawer.snap == .expanded }
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                grabber
-                header
-                    .allowsHitTesting(!suppressTaps)
-                    .padding(.horizontal, Metrics.sheetPadding)
-                    .padding(.top, 2)
-                    .padding(.bottom, 14)
-            }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { handleHeight = $0 }
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { handle.frame = $0 }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    compactBody
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { compactBodyHeight = $0 }
-                    expandedDetails
-                        .opacity(drawer.expansion)
-                        .accessibilityHidden(drawer.snap != .expanded)
-                }
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { scrollContentHeight = $0 }
-            }
-            .allowsHitTesting(!suppressTaps)
-            .scrollPosition($scrollPosition)
-            .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, offset in
-                scrollOffset = offset
-            }
-            // Only scrolls while expanded and taller than the screen, and
-            // never while the drawer itself has the finger.
-            .scrollDisabled(!canScroll || dragState.owner == .drawer)
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollIndicators(.hidden)
+        DrawerSurface(drawer: drawer, haptics: haptics, bottomInset: bottomInset, maxHeight: maxHeight,
+                      expands: true, onClose: onClose) {
+            header
+        } content: {
+            compactBody
+        } details: {
+            expandedDetails
         }
-        .frame(height: maxHeight, alignment: .top)
-        .frame(maxWidth: .infinity)
-        .background(alignment: .top) {
-            // Runs on below the screen, so the rubber band never shows a gap.
-            UnevenRoundedRectangle(topLeadingRadius: Metrics.drawerRadius, topTrailingRadius: Metrics.drawerRadius, style: .continuous)
-                .fill(Palette.sheet)
-                .padding(.bottom, -400)
-        }
-        // Alongside the scroll view and the buttons, not instead of them:
-        // DrawerLogic.track decides, per drag, which one the finger means.
-        .simultaneousGesture(drag)
-        .onChange(of: compactHeight) { report() }
-        .onChange(of: fullHeight) { report() }
-        .onChange(of: maxHeight) { report() }
-        .onChange(of: drawer.snap) {
-            // Back to the top of Details whenever it's no longer expanded.
-            if drawer.snap != .expanded { scrollPosition.scrollTo(edge: .top) }
-        }
-        .accessibilityElement(children: .contain)
-        // VoiceOver stays in the drawer while it's open, and starts on its title.
-        .accessibilityAddTraits(.isModal)
+        // VoiceOver starts on the title.
         .onAppear { titleFocused = true }
-        .accessibilityAction(.escape) { onClose(0) }
-        .accessibilityAction(named: "Close") { onClose(0) }
         .sensoryFeedback(trigger: copyCount) { _, _ in HapticLogic.feedback(for: .copied, hapticsOn: haptics) }
-        .sensoryFeedback(trigger: drawer.lastSettle) { _, settle in
-            settle.flatMap { HapticLogic.feedback(for: .drawerSettled(from: $0.from, to: $0.to), hapticsOn: haptics) }
-        }
         .sheet(isPresented: $savingContact) {
             if case .contact(let contact) = result.payload {
                 ContactSaveView(contact: contact) { savingContact = false }
                     .ignoresSafeArea()
             }
         }
-    }
-
-    private func report() {
-        drawer.measured(compact: compactHeight + bottomInset, expanded: expandedHeight)
-    }
-
-    // MARK: - Grabber and dragging
-
-    static let grabberHeight: CGFloat = 24
-
-    /// 36 × 5 to look at, 160 × 44 to hit. Tapping it moves between the
-    /// two heights.
-    private var grabber: some View {
-        Capsule()
-            .fill(Palette.grabber)
-            .frame(width: 36, height: 5)
-            .frame(width: 160, height: Self.grabberHeight)
-            .contentShape(Rectangle().inset(by: -10))
-            .onTapGesture { drawer.toggle() }
-            .accessibilityElement()
-            .accessibilityIdentifier("drawer-grabber")
-            .accessibilityLabel(drawer.snap == .expanded ? "Collapse details" : "Expand details")
-            .accessibilityAddTraits(.isButton)
-            .accessibilityAction { drawer.toggle() }
-    }
-
-    /// One gesture over the whole drawer. Under 8 pt it's nothing, so taps
-    /// on buttons still land; past that, DrawerLogic.track says whether
-    /// the finger is moving the drawer, scrolling Details, or going sideways.
-    private var drag: some Gesture {
-        DragGesture(minimumDistance: DrawerLogic.dragThreshold, coordinateSpace: .global)
-            .onChanged { value in
-                if dragState.owner == nil {
-                    dragStartsInHandle = handle.frame.contains(value.startLocation)
-                }
-                let before = dragState.owner
-                dragState = DrawerLogic.track(dragState, translation: value.translation, startsInHandle: dragStartsInHandle,
-                                              scrollOffset: scrollOffset, canScroll: canScroll)
-                if dragState.owner == .drawer {
-                    suppressTaps = true
-                    if before == .scroll { scrollPosition.scrollTo(edge: .top) }
-                    drawer.dragChanged(dragState.drawerTranslation(value.translation.height))
-                }
-            }
-            .onEnded { value in
-                defer { dragState = DrawerDrag() }
-                guard dragState.owner == .drawer else { return }
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    suppressTaps = false
-                }
-                let velocity = value.velocity.height
-                switch drawer.dragEnded(velocity: velocity) {
-                case .dismissed: onClose(-velocity)
-                case let snap: drawer.settle(to: snap, velocity: -velocity)
-                }
-            }
     }
 
     // MARK: - Compact
@@ -389,7 +261,7 @@ struct ResultDrawer: View {
 
     private var buttons: some View {
         VStack(spacing: 6) {
-            Button { perform(summary.primary) } label: {
+            DrawerButton { perform(summary.primary) } label: {
                 buttonLabel(summary.primary)
                     .primaryButtonStyle()
             }
@@ -397,7 +269,7 @@ struct ResultDrawer: View {
             .disabled(summary.primary == .joinWiFi && wifiStatus == .joining)
 
             if let secondary = summary.secondary {
-                Button { perform(secondary) } label: {
+                DrawerButton { perform(secondary) } label: {
                     buttonLabel(secondary)
                         .font(Typeface.secondaryButton)
                         .foregroundStyle(secondary == .openAnyway ? Palette.warning : .white)
@@ -421,7 +293,6 @@ struct ResultDrawer: View {
     // MARK: - Actions
 
     private func perform(_ action: ResultAction) {
-        guard !suppressTaps else { return }
         switch (action, result.payload) {
         case (.openLink, .link(let link)), (.openAnyway, .link(let link)):
             if let url = ResultLinks.web(link) { openURL(url) }
@@ -581,10 +452,4 @@ struct DetailRow: View {
         }
         .accessibilityElement(children: .combine)
     }
-}
-
-/// The drawer handle's frame on screen. A plain reference, so writing it as
-/// the drawer moves doesn't redraw anything.
-final class HandleFrame {
-    var frame: CGRect = .zero
 }

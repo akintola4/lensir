@@ -3,7 +3,7 @@
 //  Lensir
 //
 //  What lensir://scan does to the screen, as a plain function so it's tested.
-//  Whatever is open (the result drawer, History, the photo list) closes, and
+//  Whatever is open (the result or Make drawer, History, the photo list) closes, and
 //  the opening animation gets out of the way: someone who pressed a button
 //  for the camera wants the camera.
 //
@@ -27,11 +27,11 @@ nonisolated enum ScanRouting {
     }
 
     static func plan(for link: LensirLink, splashDone: Bool, splashStarted: Bool,
-                     hasResult: Bool, showingHistory: Bool, showingPhotoList: Bool) -> Plan {
+                     hasDrawer: Bool, showingHistory: Bool, showingPhotoList: Bool) -> Plan {
         switch link {
         case .scan:
             Plan(splash: splashDone ? .none : (splashStarted ? .skip : .quick),
-                 closeDrawer: hasResult,
+                 closeDrawer: hasDrawer,
                  closeHistory: showingHistory,
                  closePhotoList: showingPhotoList)
         }

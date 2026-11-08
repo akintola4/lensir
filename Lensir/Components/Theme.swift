@@ -64,6 +64,8 @@ enum Metrics {
     /// 30 − 16, as approved: the button kept its radius when the floating
     /// card became the edge drawer.
     static let buttonRadius: CGFloat = 14
+    /// Text fields and the Security menu: 10 to the button's 12, as drawn.
+    static let fieldRadius: CGFloat = 12
 }
 
 enum Motion {

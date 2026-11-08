@@ -31,7 +31,7 @@ shot() { # file, launch arguments...
   echo "wrote $OUT/$file"
 }
 
-mkdir -p "$OUT"
+mkdir -p "$OUT" "$OUT/ax5"
 shot looking.png -LensirDemo looking
 shot found.png -LensirDemo found
 shot safe-link.png -LensirDemo safe
@@ -48,7 +48,21 @@ shot text.png -LensirDemo text
 shot photo-codes.png -LensirDemo photos
 shot history.png -LensirDemo looking -LensirOpenHistory
 shot history-empty.png -LensirDemo looking -LensirOpenHistory -LensirEmptyHistory
+shot make-link.png -LensirDemo make-link
+shot make-wifi.png -LensirDemo make-wifi
+shot make-risky.png -LensirDemo make-risky
+shot make-show.png -LensirDemo make-show
+shot my-codes-empty.png -LensirDemo looking -LensirOpenHistory -LensirEmptyCodes
 shot camera-denied.png -LensirCameraDenied
 shot no-camera.png -LensirNoCamera
+
+# The largest accessibility text size, for Make and My codes.
+xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large
+shot ax5/make-wifi.png -LensirDemo make-wifi
+shot ax5/make-risky.png -LensirDemo make-risky
+shot ax5/make-show.png -LensirDemo make-show
+shot ax5/history.png -LensirDemo looking -LensirOpenHistory
+shot ax5/my-codes-empty.png -LensirDemo looking -LensirOpenHistory -LensirEmptyHistory
+xcrun simctl ui "$UDID" content_size large
 
 xcrun simctl status_bar "$UDID" clear

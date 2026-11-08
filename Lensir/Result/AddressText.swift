@@ -30,17 +30,19 @@ enum AddressText {
     }
 
     /// The site's name for the sheet's title, with the same red underlines.
-    static func title(_ report: SafetyReport) -> AttributedString? {
+    /// `breaksAtDots` lets a long name wrap after a dot rather than be
+    /// hyphenated, which would look like part of the address.
+    static func title(_ report: SafetyReport, breaksAtDots: Bool = false) -> AttributedString? {
         guard let address = report.address, address.hasAuthority else { return nil }
         let offset = address.shortHostOffset
         let ranges = report.highlights.compactMap { range -> Range<Int>? in
             let shifted = (range.lowerBound - offset)..<(range.upperBound - offset)
             return shifted.lowerBound >= 0 ? shifted : nil
         }
-        return host(address.shortHost, highlights: ranges, font: nil)
+        return host(address.shortHost, highlights: ranges, font: nil, breaksAtDots: breaksAtDots)
     }
 
-    private static func host(_ text: String, highlights: [Range<Int>], font: Font?) -> AttributedString {
+    private static func host(_ text: String, highlights: [Range<Int>], font: Font?, breaksAtDots: Bool = false) -> AttributedString {
         var result = AttributedString()
         for (index, character) in text.enumerated() {
             var piece = AttributedString(String(character))
@@ -52,6 +54,7 @@ enum AddressText {
                 piece.foregroundColor = .white
             }
             result += piece
+            if breaksAtDots && character == "." { result += AttributedString("\u{200B}") }
         }
         return result
     }

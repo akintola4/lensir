@@ -74,10 +74,16 @@ nonisolated enum PayloadParser {
     /// `MECARD:N:Okafor,Ada;TEL:+234...;EMAIL:ada@example.com;;`
     static func mecard(_ text: String) -> Contact {
         var contact = Contact()
-        for (key, value) in orderedFields(in: String(text.dropFirst("MECARD:".count))) where !value.isEmpty {
+        // An escaped comma ("Kola Logistics\, Ikeja") is part of the name,
+        // not the break between family and given name.
+        let comma = String(escapedComma)
+        for (key, marked) in orderedFields(in: String(text.dropFirst("MECARD:".count)), markingCommas: true) where !marked.isEmpty {
+            let value = marked.replacingOccurrences(of: comma, with: ",")
             switch key {
             case "N":
-                let parts = value.split(separator: ",", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+                let parts = marked.split(separator: ",", maxSplits: 1).map {
+                    $0.replacingOccurrences(of: comma, with: ",").trimmingCharacters(in: .whitespaces)
+                }
                 if parts.count == 2 {
                     contact.familyName = parts[0]
                     contact.givenName = parts[1]
@@ -224,7 +230,11 @@ nonisolated enum PayloadParser {
         return result
     }
 
-    private static func orderedFields(in body: String) -> [(String, String)] {
+    private static let escapedComma: Character = "\u{F8FE}"
+
+    /// `markingCommas` leaves escaped commas as `escapedComma`, for fields
+    /// whose own commas mean something (MECARD's `N:Family,Given`).
+    private static func orderedFields(in body: String, markingCommas: Bool = false) -> [(String, String)] {
         var pairs: [(String, String)] = []
         var current = ""
         var escaping = false
@@ -239,7 +249,7 @@ nonisolated enum PayloadParser {
         let escapedColon: Character = "\u{F8FF}"
         for character in body {
             if escaping {
-                current.append(character == ":" ? escapedColon : character)
+                current.append(character == ":" ? escapedColon : (markingCommas && character == "," ? escapedComma : character))
                 escaping = false
             } else if character == "\\" {
                 escaping = true

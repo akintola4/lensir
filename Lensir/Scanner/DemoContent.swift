@@ -24,10 +24,16 @@ enum DemoScene: String {
     /// Plays through the drawer by itself, for recording: the brackets snap,
     /// the drawer rises, expands, settles back and is flicked away.
     case drawerTour = "drawer-tour"
+    /// The Make drawer, filled in: a link, the Kola Logistics Wi-Fi, a
+    /// lookalike link with its warning, and the Wi-Fi shown full screen.
+    case makeLink = "make-link"
+    case makeWiFi = "make-wifi"
+    case makeRisky = "make-risky"
+    case makeShow = "make-show"
 
     var payload: String? {
         switch self {
-        case .looking, .photos: nil
+        case .looking, .photos, .makeLink, .makeWiFi, .makeRisky, .makeShow: nil
         case .found, .safe, .safeExpanded, .drawerTour: "https://paystack.com/pay/kola-logistics"
         // The "a" after "payst" is Cyrillic (U+0430).
         case .risky, .riskyExpanded: "https://payst\u{0430}ck.com/pay"
@@ -48,7 +54,7 @@ enum DemoScene: String {
     /// Scenes that open with the drawer already up, not just the pill.
     var opensSheet: Bool {
         switch self {
-        case .looking, .found, .photos, .drawerTour: false
+        case .looking, .found, .photos, .drawerTour, .makeLink, .makeWiFi, .makeRisky, .makeShow: false
         default: true
         }
     }
@@ -57,6 +63,19 @@ enum DemoScene: String {
         switch self {
         case .safeExpanded, .riskyExpanded, .wifiExpanded, .contactExpanded, .longExpanded: true
         default: false
+        }
+    }
+}
+
+extension DemoScene {
+    /// What the Make scenes open with already typed.
+    var makeDraft: CodeDraft? {
+        switch self {
+        case .makeLink: CodeDraft(kind: .link, link: "kolalogistics.test/track")
+        case .makeWiFi, .makeShow: CodeDraft(kind: .wifi, ssid: "Kola Logistics", password: "jollof-2026")
+        // The "a" after "payst" is Cyrillic (U+0430).
+        case .makeRisky: CodeDraft(kind: .link, link: "https://payst\u{0430}ck.com/pay/kola-logistics")
+        default: nil
         }
     }
 }
@@ -88,6 +107,20 @@ enum DemoContent {
         ]
         for (raw, symbology, date) in samples {
             context.insert(ScanRecord(raw: raw, symbology: symbology, date: date))
+        }
+    }
+
+    /// My codes: the office Wi-Fi for guests, the tracking page, the front desk.
+    static func seedCodes(in context: ModelContext) {
+        let now = Date.now
+        let calendar = Calendar.current
+        let codes: [(String, String, Int)] = [
+            ("WIFI:T:WPA;S:Kola Logistics;P:jollof-2026;;", "Kola Logistics", 0),
+            ("https://kolalogistics.test/track", "kolalogistics.test", 2),
+            ("tel:+2348060000000", "+234 806 000 0000", 9),
+        ]
+        for (raw, name, daysAgo) in codes {
+            context.insert(MadeCode(raw: raw, name: name, date: calendar.date(byAdding: .day, value: -daysAgo, to: now) ?? now))
         }
     }
 

@@ -5,7 +5,8 @@
 //  The one screen. The camera fills it; four brackets wait in the middle.
 //  When a code turns up they snap onto it and a white pill names what it
 //  is. Nothing opens by itself: tap the pill and a drawer slides up from
-//  the bottom edge with the whole thing, and you choose.
+//  the bottom edge with the whole thing, and you choose. Make, between the
+//  photo and History buttons, raises the same drawer to make a code.
 //
 
 import PhotosUI
@@ -23,6 +24,13 @@ struct ScannerScreen: View {
     @State private var pendingHistoryRecord: (raw: String, symbology: String, date: Date)?
     @State private var pillSize = CGSize(width: 160, height: 44)
     @State private var drawer = DrawerState()
+    /// What's typed in Make. Kept while the app runs, so closing the drawer
+    /// by accident loses nothing.
+    @State private var makeDraft = CodeDraft()
+    /// Make was tapped in History; it opens once History has gone.
+    @State private var pendingMake = false
+    /// How much of the screen the keyboard covers. Only Make has fields.
+    @State private var keyboardHeight: CGFloat = 0
     /// Where the demo camera's code sits, for the drawer tour.
     @State private var demoFrame: CGRect?
     /// The opening animation: once per cold launch, since this screen lives
@@ -45,6 +53,9 @@ struct ScannerScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    /// The text size before this screen caps it. The camera controls stop
+    /// at AX1; Make's form goes all the way.
+    @Environment(\.dynamicTypeSize) private var systemTypeSize
 
     var body: some View {
         // The clock only runs during the opening animation.
@@ -68,8 +79,8 @@ struct ScannerScreen: View {
                         pill(size: size)
                     }
                     .frame(width: size.width, height: size.height)
-                    .clipShape(RoundedRectangle(cornerRadius: model.result == nil ? 0 : drawer.backgroundRadius, style: .continuous))
-                    .scaleEffect(model.result == nil ? 1 : drawer.backgroundScale)
+                    .clipShape(RoundedRectangle(cornerRadius: model.drawerOpen ? drawer.backgroundRadius : 0, style: .continuous))
+                    .scaleEffect(model.drawerOpen ? drawer.backgroundScale : 1)
                     if let splash {
                         SplashCredit(opacity: splash.credit, bottomInset: safe.bottom)
                             .frame(width: size.width, height: size.height)
@@ -85,6 +96,9 @@ struct ScannerScreen: View {
                 .coordinateSpace(.named("screen"))
                 .ignoresSafeArea()
             }
+            // The keyboard is handled by hand (keyboardHeight), so the
+            // screen's own insets never jump when it comes up.
+            .ignoresSafeArea(.keyboard)
         }
         .background(Color.black)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
@@ -102,6 +116,16 @@ struct ScannerScreen: View {
             let expands = LaunchOptions.demo?.expandsDrawer ?? false
             drawer.present(expands ? .expanded : .compact, animated: !(LaunchOptions.demo?.opensSheet ?? false))
             saveToHistory()
+        }
+        .onChange(of: model.making) {
+            // Back to Make, the button that opened it.
+            if !model.making { focus = ScannerFocusLogic.afterClosing(.make, hint: hintText) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            keyboardChanged(note)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(Self.keyboardMotion) { keyboardHeight = 0 }
         }
         .onChange(of: photoItem) { readPhoto() }
         .onChange(of: inbox.latest, initial: true) {
@@ -125,6 +149,9 @@ struct ScannerScreen: View {
             HistoryView(settings: settings) { record in
                 pendingHistoryRecord = (record.raw, record.symbology, record.date)
                 showingHistory = false
+            } onMake: {
+                pendingMake = true
+                showingHistory = false
             }
         }
         .sheet(isPresented: Binding(get: { !model.photoCodes.isEmpty }, set: { if !$0 { model.photoCodes = [] } }),
@@ -139,7 +166,7 @@ struct ScannerScreen: View {
     // MARK: - Layers
 
     @ViewBuilder private func camera(size: CGSize) -> some View {
-        let scanning = model.result == nil && scenePhase == .active
+        let scanning = !model.drawerOpen && scenePhase == .active
         Group {
             switch model.camera {
             case .dataScanner:
@@ -181,7 +208,7 @@ struct ScannerScreen: View {
             let frame = splash?.brackets ?? model.detection.map { ScanGeometry.foundFrame(around: $0.bounds, in: size) } ?? ScanGeometry.lookingFrame(in: size)
             let warning = model.result?.summary.isWarning ?? model.detectionSummary?.isWarning ?? false
             let base = ScanGeometry.dimOpacity(found: model.detection != nil)
-            let dim = model.result == nil ? base : drawer.dim(base: base)
+            let dim = model.drawerOpen ? drawer.dim(base: base) : base
             ScanOverlay(
                 frame: frame,
                 dim: cameraIsLive ? dim * (splash?.scene ?? 1) : 0,
@@ -230,6 +257,22 @@ struct ScannerScreen: View {
                     .accessibilityLabel("Scan a photo")
                     .accessibilityFocused($focus, equals: .photoButton)
                     Spacer()
+                    Button { startMaking() } label: {
+                        Text("Make")
+                            .font(Typeface.primaryButton)
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 28)
+                            .frame(minHeight: 48)
+                            .background(Capsule().fill(.white))
+                            // 48 pt to look at, 52 like its neighbours to hit.
+                            .padding(.vertical, 2)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressableStyle())
+                    .accessibilityLabel("Make a code")
+                    .accessibilityIdentifier("make-button")
+                    .accessibilityFocused($focus, equals: .makeButton)
+                    Spacer()
                     Button { showingHistory = true } label: {
                         CircleIcon(systemName: "clock.arrow.circlepath", diameter: 52)
                     }
@@ -238,8 +281,9 @@ struct ScannerScreen: View {
                 }
             }
             .padding(.bottom, bottomInset(safe))
-            .opacity(model.result == nil ? 1 : 0)
-            .allowsHitTesting(model.result == nil)
+            .opacity(model.drawerOpen ? 0 : 1)
+            .allowsHitTesting(!model.drawerOpen)
+            .accessibilityHidden(model.drawerOpen)
         }
         .padding(.leading, Metrics.edge + safe.leading)
         .padding(.trailing, Metrics.edge + safe.trailing)
@@ -263,7 +307,7 @@ struct ScannerScreen: View {
     }
 
     @ViewBuilder private func pill(size: CGSize) -> some View {
-        if let detection = model.detection, let summary = model.detectionSummary, model.result == nil {
+        if let detection = model.detection, let summary = model.detectionSummary, !model.drawerOpen {
             let frame = ScanGeometry.foundFrame(around: detection.bounds, in: size).rect
             FoundPill(summary: summary) {
                 model.openDetection()
@@ -297,7 +341,48 @@ struct ScannerScreen: View {
                 .offset(y: maxHeight - drawer.height)
             }
             .frame(width: size.width, height: size.height)
+        } else if model.making {
+            // Sits on the keyboard when it's up, and shrinks to fit above it.
+            let lift = keyboardHeight
+            let maxHeight = size.height - safe.top - 8 - lift
+            ZStack(alignment: .bottom) {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { closeDrawer() }
+                    .accessibilityHidden(true)
+                MakeDrawer(draft: $makeDraft, drawer: drawer, haptics: settings.haptics,
+                           bottomInset: lift > 0 ? 12 : max(safe.bottom, 16), maxHeight: maxHeight) { velocity in
+                    closeDrawer(velocity: velocity)
+                }
+                .id("make")
+                .environment(\.dynamicTypeSize, systemTypeSize)
+                .padding(.leading, safe.leading)
+                .padding(.trailing, safe.trailing)
+                .offset(y: maxHeight - drawer.height)
+                .padding(.bottom, lift)
+            }
+            .frame(width: size.width, height: size.height)
         }
+    }
+
+    /// The keyboard's own curve, near enough, so the drawer rides on it.
+    private static let keyboardMotion = Animation.interpolatingSpring(mass: 3, stiffness: 1000, damping: 500)
+
+    private func keyboardChanged(_ note: Notification) {
+        guard let end = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let screenHeight = (note.object as? UIScreen)?.bounds.height
+            ?? UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds.height }.first
+            ?? end.maxY
+        let height = max(0, screenHeight - end.minY)
+        guard abs(height - keyboardHeight) > 0.5 else { return }
+        withAnimation(Self.keyboardMotion) { keyboardHeight = height }
+    }
+
+    /// The drawer is told first, so it's waiting for its size when the
+    /// form lays out.
+    private func startMaking(animated: Bool = true) {
+        drawer.present(.compact, animated: animated)
+        model.startMaking()
     }
 
     /// Slide the drawer away at the speed it was thrown, let the brackets
@@ -321,6 +406,10 @@ struct ScannerScreen: View {
         model.acceptsCodes = splashDone
         model.camera = await CameraAccess.resolve()
         guard let scene = LaunchOptions.demo else { return }
+        if let draft = scene.makeDraft {
+            makeDraft = draft
+            startMaking(animated: false)
+        }
         if scene == .photos, let data = DemoContent.photoWithCodes() {
             model.photoCodes = await PhotoScanner.codes(in: data)
         }
@@ -397,7 +486,7 @@ struct ScannerScreen: View {
     /// lensir://scan: close whatever is open and get to the camera.
     private func open(_ link: LensirLink) {
         let plan = ScanRouting.plan(for: link, splashDone: splashDone, splashStarted: splashStart != nil,
-                                    hasResult: model.result != nil, showingHistory: showingHistory,
+                                    hasDrawer: model.drawerOpen, showingHistory: showingHistory,
                                     showingPhotoList: !model.photoCodes.isEmpty)
         switch plan.splash {
         case .none: break
@@ -406,6 +495,7 @@ struct ScannerScreen: View {
         }
         if plan.closeHistory {
             pendingHistoryRecord = nil
+            pendingMake = false
             showingHistory = false
         }
         if plan.closePhotoList { model.photoCodes = [] }
@@ -461,6 +551,11 @@ struct ScannerScreen: View {
     }
 
     private func openPendingRecord() {
+        if pendingMake {
+            pendingMake = false
+            startMaking()
+            return
+        }
         guard let record = pendingHistoryRecord else { return }
         pendingHistoryRecord = nil
         model.open(raw: record.raw, symbology: record.symbology, source: .history, scannedAt: record.date)

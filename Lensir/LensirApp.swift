@@ -35,12 +35,14 @@ enum LensirStore {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory, groupContainer: .none)
         let container: ModelContainer
         do {
-            container = try ModelContainer(for: ScanRecord.self, configurations: configuration)
+            // My codes share the store with History.
+            container = try ModelContainer(for: ScanRecord.self, MadeCode.self, configurations: configuration)
         } catch {
             fatalError("Couldn't open the history store: \(error)")
         }
         if LaunchOptions.openHistory && !LaunchOptions.emptyHistory {
             DemoContent.seedHistory(in: container.mainContext)
+            if !LaunchOptions.emptyCodes { DemoContent.seedCodes(in: container.mainContext) }
         }
         return container
     }
@@ -54,7 +56,8 @@ enum LensirStore {
 /// memory, so nothing is saved.
 enum LaunchOptions {
     /// `-LensirDemo found`: open on a demo scene. One of `looking`, `found`,
-    /// `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text`, `photos`.
+    /// `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text`, `photos`,
+    /// or `make-link`, `make-wifi`, `make-risky`, `make-show` for Make.
     static var demo: DemoScene? { value(after: "-LensirDemo").flatMap(DemoScene.init(rawValue:)) }
 
     /// `-LensirNoCamera`: act as if the phone has no camera.
@@ -68,6 +71,9 @@ enum LaunchOptions {
 
     /// `-LensirEmptyHistory`: with -LensirOpenHistory, leave the list empty.
     static var emptyHistory: Bool { flag("-LensirEmptyHistory") }
+
+    /// `-LensirEmptyCodes`: with -LensirOpenHistory, fill in scans but no My codes.
+    static var emptyCodes: Bool { flag("-LensirEmptyCodes") }
 
     /// `-LensirNoSplash`: open straight on the scanner, for screenshots.
     static var skipSplash: Bool { flag("-LensirNoSplash") }

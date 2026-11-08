@@ -106,9 +106,9 @@ struct LinkInboxTests {
 
 @Suite("What lensir://scan closes")
 struct ScanRoutingTests {
-    private func plan(splashDone: Bool = true, splashStarted: Bool = true, hasResult: Bool = false,
+    private func plan(splashDone: Bool = true, splashStarted: Bool = true, hasDrawer: Bool = false,
                       showingHistory: Bool = false, showingPhotoList: Bool = false) -> ScanRouting.Plan {
-        ScanRouting.plan(for: .scan, splashDone: splashDone, splashStarted: splashStarted, hasResult: hasResult,
+        ScanRouting.plan(for: .scan, splashDone: splashDone, splashStarted: splashStarted, hasDrawer: hasDrawer,
                          showingHistory: showingHistory, showingPhotoList: showingPhotoList)
     }
 
@@ -117,10 +117,10 @@ struct ScanRoutingTests {
     }
 
     @Test func closesWhateverIsOpen() {
-        #expect(plan(hasResult: true).closeDrawer)
+        #expect(plan(hasDrawer: true).closeDrawer)
         #expect(plan(showingHistory: true).closeHistory)
         #expect(plan(showingPhotoList: true).closePhotoList)
-        let everything = plan(hasResult: true, showingHistory: true, showingPhotoList: true)
+        let everything = plan(hasDrawer: true, showingHistory: true, showingPhotoList: true)
         #expect(everything.closeDrawer && everything.closeHistory && everything.closePhotoList)
     }
 

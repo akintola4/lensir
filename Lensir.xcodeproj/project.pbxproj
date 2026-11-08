@@ -557,6 +557,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Lensir;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Lensir uses the camera to read QR codes and barcodes. Nothing it sees leaves your phone.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lensir saves codes you make to Photos. It only adds them and never looks at your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
@@ -594,6 +595,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Lensir;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Lensir uses the camera to read QR codes and barcodes. Nothing it sees leaves your phone.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lensir saves codes you make to Photos. It only adds them and never looks at your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;

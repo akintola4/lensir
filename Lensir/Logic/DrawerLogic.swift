@@ -42,7 +42,16 @@ nonisolated enum DrawerLogic {
 
     /// Where to go on release. `velocity` is in points per second, positive
     /// when the drawer is moving up (growing).
-    static func snap(height: CGFloat, velocity: CGFloat, compact: CGFloat, expanded: CGFloat, from: DrawerSnap) -> DrawerSnap {
+    ///
+    /// A drawer that doesn't `expand` (Make, which has no Details) has one
+    /// height: anything that would expand it stays at compact.
+    static func snap(height: CGFloat, velocity: CGFloat, compact: CGFloat, expanded: CGFloat, from: DrawerSnap,
+                     expands: Bool = true) -> DrawerSnap {
+        let snap = nearestSnap(height: height, velocity: velocity, compact: compact, expanded: expanded, from: from)
+        return !expands && snap == .expanded ? .compact : snap
+    }
+
+    private static func nearestSnap(height: CGFloat, velocity: CGFloat, compact: CGFloat, expanded: CGFloat, from: DrawerSnap) -> DrawerSnap {
         if velocity <= -flickVelocity {
             // A flick down: expanded steps to compact; compact closes.
             return from == .expanded && height > compact * 0.5 ? .compact : .dismissed

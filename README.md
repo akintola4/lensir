@@ -33,7 +33,7 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 ## What it does
 
 - The camera fills the screen. Four white corner brackets wait in the middle with the rest dimmed. When a code turns up they snap onto it in about 200 ms with a light tap, and a white pill under the code names what it is: the site for a link, the network for Wi-Fi, the person for a contact card.
-- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). It follows your finger, and when you let go it settles where the throw would carry it. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, every field in the code, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
+- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). You can drag it from anywhere, not only the grabber. It follows your finger, and when you let go it settles where the throw would carry it. If Details are scrolled down, dragging down scrolls them back to the top first, then pulls the drawer down in the same movement. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, every field in the code, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
 
   | Code | Main button | Second button |
   |---|---|---|
@@ -127,7 +127,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 110 tests in `LensirTests`. They cover:
+There are 120 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -140,6 +140,9 @@ There are 110 tests in `LensirTests`. They cover:
 - reading three codes out of one photo with Vision, in order
 - the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, and the dim and background scale that follow its height
 - what Details lists: a pass or fail row per check, and every field for each kind of code
+- who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top
+
+`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled, by the header, up from the content, a flick to close, and a drag that starts on Open in Safari, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -173,6 +176,7 @@ Lensir/            the app
   History/         SwiftData history and Settings
   Components/      colours, type, the press style
 LensirTests/       Swift Testing suites
+LensirUITests/     real-touch drawer gesture tests (XCTest)
 Config/            Lensir.xcconfig (bundle prefix, team, Wi-Fi join), Info.plist, entitlements
 scripts/           screenshots and the icon
 ```

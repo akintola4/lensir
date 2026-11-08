@@ -32,29 +32,60 @@ struct ResultDrawer: View {
     @State private var copiedTask: Task<Void, Never>?
     @State private var savingContact = false
     @State private var wifiStatus: WiFiStatus?
-    @State private var compactHeight: CGFloat = 0
-    @State private var fullHeight: CGFloat = 0
+    /// Grabber plus header: always a drag handle, pinned above the scroll.
+    @State private var handleHeight: CGFloat = 0
+    @State private var handleFrame: CGRect = .zero
+    @State private var compactBodyHeight: CGFloat = 0
+    @State private var scrollContentHeight: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
+    @State private var scrollPosition = ScrollPosition(edge: .top)
+    @State private var dragState = DrawerDrag()
+    @State private var dragStartsInHandle = false
+    /// Set while, and just after, the drawer follows a finger. The drawer
+    /// moves with the finger, so a drag that starts on a button also ends
+    /// on it; this keeps that release from counting as a tap.
+    @State private var suppressTaps = false
 
     private var summary: ResultSummary { result.summary }
+    private var compactHeight: CGFloat { handleHeight + compactBodyHeight }
+    private var fullHeight: CGFloat { handleHeight + scrollContentHeight }
     private var expandedHeight: CGFloat { min(fullHeight, maxHeight) }
-    /// Taller than the screen allows: the details scroll once expanded.
+    /// Taller than the screen allows: once expanded, Details scroll.
     private var overflows: Bool { fullHeight > maxHeight + 0.5 }
-    private var scrolls: Bool { overflows && drawer.snap == .expanded && !drawer.isDragging }
+    private var canScroll: Bool { overflows && drawer.snap == .expanded }
 
     var body: some View {
         VStack(spacing: 0) {
-            grabber
+            VStack(spacing: 0) {
+                grabber
+                header
+                    .allowsHitTesting(!suppressTaps)
+                    .padding(.horizontal, Metrics.sheetPadding)
+                    .padding(.top, 2)
+                    .padding(.bottom, 14)
+            }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                handleFrame = $0
+                handleHeight = $0.height
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    compact
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { compactHeight = $0 + Self.grabberHeight }
+                    compactBody
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { compactBodyHeight = $0 }
                     expandedDetails
                         .opacity(drawer.expansion)
                         .accessibilityHidden(drawer.snap != .expanded)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 + Self.grabberHeight }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { scrollContentHeight = $0 }
             }
-            .scrollDisabled(!scrolls)
+            .allowsHitTesting(!suppressTaps)
+            .scrollPosition($scrollPosition)
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, offset in
+                scrollOffset = offset
+            }
+            // Only scrolls while expanded and taller than the screen, and
+            // never while the drawer itself has the finger.
+            .scrollDisabled(!canScroll || dragState.owner == .drawer)
             .scrollBounceBehavior(.basedOnSize)
             .scrollIndicators(.hidden)
         }
@@ -66,10 +97,16 @@ struct ResultDrawer: View {
                 .fill(Palette.sheet)
                 .padding(.bottom, -400)
         }
-        .gesture(drag, isEnabled: !scrolls)
+        // Alongside the scroll view and the buttons, not instead of them:
+        // DrawerLogic.track decides, per drag, which one the finger means.
+        .simultaneousGesture(drag)
         .onChange(of: compactHeight) { report() }
         .onChange(of: fullHeight) { report() }
         .onChange(of: maxHeight) { report() }
+        .onChange(of: drawer.snap) {
+            // Back to the top of Details whenever it's no longer expanded.
+            if drawer.snap != .expanded { scrollPosition.scrollTo(edge: .top) }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityAction(.escape) { onClose(0) }
         .accessibilityAction(named: "Close") { onClose(0) }
@@ -99,17 +136,38 @@ struct ResultDrawer: View {
             .frame(width: 160, height: Self.grabberHeight)
             .contentShape(Rectangle().inset(by: -10))
             .onTapGesture { drawer.toggle() }
-            .gesture(drag)
             .accessibilityElement()
+            .accessibilityIdentifier("drawer-grabber")
             .accessibilityLabel(drawer.snap == .expanded ? "Collapse details" : "Expand details")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { drawer.toggle() }
     }
 
+    /// One gesture over the whole drawer. Under 8 pt it's nothing, so taps
+    /// on buttons still land; past that, DrawerLogic.track says whether
+    /// the finger is moving the drawer, scrolling Details, or going sideways.
     private var drag: some Gesture {
-        DragGesture(minimumDistance: 6, coordinateSpace: .global)
-            .onChanged { value in drawer.dragChanged(value.translation.height) }
+        DragGesture(minimumDistance: DrawerLogic.dragThreshold, coordinateSpace: .global)
+            .onChanged { value in
+                if dragState.owner == nil {
+                    dragStartsInHandle = handleFrame.contains(value.startLocation)
+                }
+                let before = dragState.owner
+                dragState = DrawerLogic.track(dragState, translation: value.translation, startsInHandle: dragStartsInHandle,
+                                              scrollOffset: scrollOffset, canScroll: canScroll)
+                if dragState.owner == .drawer {
+                    suppressTaps = true
+                    if before == .scroll { scrollPosition.scrollTo(edge: .top) }
+                    drawer.dragChanged(dragState.drawerTranslation(value.translation.height))
+                }
+            }
             .onEnded { value in
+                defer { dragState = DrawerDrag() }
+                guard dragState.owner == .drawer else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    suppressTaps = false
+                }
                 let velocity = value.velocity.height
                 switch drawer.dragEnded(velocity: velocity) {
                 case .dismissed: onClose(-velocity)
@@ -120,14 +178,14 @@ struct ResultDrawer: View {
 
     // MARK: - Compact
 
-    private var compact: some View {
+    /// Everything in compact under the header: the details line or two,
+    /// the checks and the buttons.
+    private var compactBody: some View {
         VStack(alignment: .leading, spacing: 14) {
-            header
             details
             buttons
         }
         .padding(.horizontal, Metrics.sheetPadding)
-        .padding(.top, 2)
         .padding(.bottom, summary.secondary == nil ? Metrics.sheetPadding : 8)
     }
 
@@ -374,6 +432,7 @@ struct ResultDrawer: View {
     // MARK: - Actions
 
     private func perform(_ action: ResultAction) {
+        guard !suppressTaps else { return }
         switch (action, result.payload) {
         case (.openLink, .link(let link)), (.openAnyway, .link(let link)):
             if let url = ResultLinks.web(link) { openURL(url) }

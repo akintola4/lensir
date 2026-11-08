@@ -152,3 +152,64 @@ struct ResultDetailsTests {
         #expect(ResultDetails.fields(for: .link("https://a.com")).isEmpty)
     }
 }
+
+@Suite("Who owns a drag")
+struct DragOwnerTests {
+    private func start(_ dx: CGFloat, _ dy: CGFloat, handle: Bool = false, offset: CGFloat = 0, canScroll: Bool = true) -> DrawerDrag {
+        DrawerLogic.track(DrawerDrag(), translation: CGSize(width: dx, height: dy), startsInHandle: handle, scrollOffset: offset, canScroll: canScroll)
+    }
+
+    @Test func smallMovementIsStillATap() {
+        #expect(start(3, 5).owner == nil)
+    }
+
+    @Test func sidewaysDragsAreLeftAlone() {
+        #expect(start(30, 10).owner == .ignored)
+    }
+
+    @Test func headerAlwaysMovesTheDrawer() {
+        #expect(start(0, 12, handle: true, offset: 300).owner == .drawer)
+        #expect(start(0, -12, handle: true, offset: 300).owner == .drawer)
+    }
+
+    @Test func dragDownAtTheTopMovesTheDrawer() {
+        let drag = start(0, 10, offset: 0)
+        #expect(drag.owner == .drawer)
+        #expect(drag.drawerTranslation(10) == 0)
+        #expect(drag.drawerTranslation(150) == 140)
+    }
+
+    @Test func dragDownWhenScrolledScrollsFirst() {
+        #expect(start(0, 10, offset: 200).owner == .scroll)
+    }
+
+    @Test func scrollHandsOverAtTheTopWithoutAJump() {
+        var drag = start(0, 10, offset: 200)
+        // Still scrolling back up through the content.
+        drag = DrawerLogic.track(drag, translation: CGSize(width: 0, height: 120), startsInHandle: false, scrollOffset: 90, canScroll: true)
+        #expect(drag.owner == .scroll)
+        // Reached the top 210 pt in: the drawer takes over from there.
+        drag = DrawerLogic.track(drag, translation: CGSize(width: 0, height: 210), startsInHandle: false, scrollOffset: 0, canScroll: true)
+        #expect(drag.owner == .drawer)
+        #expect(drag.drawerTranslation(210) == 0)
+        #expect(drag.drawerTranslation(330) == 120)
+    }
+
+    @Test func dragUpInCompactExpands() {
+        // Compact content doesn't scroll, so the drawer owns any vertical drag.
+        #expect(start(0, -20, canScroll: false).owner == .drawer)
+    }
+
+    @Test func dragUpWhenExpandedScrolls() {
+        #expect(start(0, -20, offset: 0, canScroll: true).owner == .scroll)
+    }
+
+    @Test func dragDownWhenContentDoesNotScroll() {
+        #expect(start(0, 20, offset: 0, canScroll: false).owner == .drawer)
+    }
+
+    @Test func ownerStaysOnceDecided() {
+        let drag = DrawerLogic.track(start(30, 5), translation: CGSize(width: 0, height: 200), startsInHandle: false, scrollOffset: 0, canScroll: true)
+        #expect(drag.owner == .ignored)
+    }
+}

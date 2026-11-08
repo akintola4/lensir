@@ -100,3 +100,59 @@ nonisolated enum DrawerLogic {
         return min(max((height - compact) / (expanded - compact), 0), 1)
     }
 }
+
+// MARK: - Who owns a drag
+
+/// Whether a finger on the drawer moves the drawer, scrolls its content,
+/// or is left alone (sideways drags).
+nonisolated enum DragOwner: Equatable, Sendable {
+    case drawer, scroll, ignored
+}
+
+/// One drag across the drawer, from first movement to release. Pure, so
+/// the hand-over between scrolling and moving the drawer is tested.
+nonisolated struct DrawerDrag: Equatable, Sendable {
+    /// Nil until the finger has moved far enough to tell what it means.
+    var owner: DragOwner?
+    /// The finger's vertical travel when the drawer took over. The drawer
+    /// moves by whatever comes after, so it never jumps.
+    var handoff: CGFloat = 0
+
+    /// How far the drawer itself should have moved.
+    func drawerTranslation(_ translation: CGFloat) -> CGFloat {
+        owner == .drawer ? translation - handoff : 0
+    }
+}
+
+extension DrawerLogic {
+    /// Movement under this is still a tap.
+    static let dragThreshold: CGFloat = 8
+
+    /// Works out, or updates, who owns a drag. `translation.height` is
+    /// positive downward. `scrollOffset` is how far the Details content is
+    /// scrolled; `canScroll` is whether it scrolls at all right now.
+    ///
+    /// Like Vaul: the header always moves the drawer. Elsewhere, a drag
+    /// down moves the drawer once the content is at the top, and a drag up
+    /// in compact expands it. If the content is scrolled down, a drag down
+    /// scrolls it back first and hands over to the drawer the moment it
+    /// reaches the top, carrying on from there.
+    static func track(_ drag: DrawerDrag, translation: CGSize, startsInHandle: Bool,
+                      scrollOffset: CGFloat, canScroll: Bool) -> DrawerDrag {
+        let atTop = scrollOffset <= 0.5
+        switch drag.owner {
+        case .some(.scroll):
+            guard atTop, translation.height > 0 else { return drag }
+            return DrawerDrag(owner: .drawer, handoff: translation.height)
+        case .some:
+            return drag
+        case nil:
+            let dx = translation.width, dy = translation.height
+            guard (dx * dx + dy * dy).squareRoot() >= dragThreshold else { return drag }
+            if abs(dx) > abs(dy) { return DrawerDrag(owner: .ignored) }
+            if startsInHandle || !canScroll { return DrawerDrag(owner: .drawer, handoff: dy) }
+            if dy > 0 { return atTop ? DrawerDrag(owner: .drawer, handoff: dy) : DrawerDrag(owner: .scroll) }
+            return DrawerDrag(owner: .scroll)
+        }
+    }
+}

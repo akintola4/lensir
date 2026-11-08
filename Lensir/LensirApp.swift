@@ -64,6 +64,16 @@ enum LaunchOptions {
     /// `-LensirEmptyHistory`: with -LensirOpenHistory, leave the list empty.
     static var emptyHistory: Bool { flag("-LensirEmptyHistory") }
 
+    /// `-LensirNoSplash`: open straight on the scanner, for screenshots.
+    static var skipSplash: Bool { flag("-LensirNoSplash") }
+
+    /// `-LensirSplashSlow`: play the opening animation 4× slower, for tuning it.
+    static var splashSlowdown: Double { flag("-LensirSplashSlow") ? 4 : 1 }
+
+    /// `-LensirSplashAt 0.3`: hold the opening animation at this many seconds
+    /// in, for stills. It never moves on to the scanner.
+    static var splashFrozenAt: Double? { value(after: "-LensirSplashAt").flatMap(Double.init) }
+
     private static func flag(_ name: String) -> Bool {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains(name)

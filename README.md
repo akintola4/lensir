@@ -6,6 +6,10 @@ It comes from the same place as [Pocket](https://github.com/akintola4/pocket) an
 
 It isn't on the App Store. You clone it, open it in Xcode and run it on your own phone.
 
+<p align="center"><img src="docs/screenshots/splash.gif" width="280" alt="Lensir's opening: the corner brackets breathe out, snap onto the lens dot, then grow into the scanner's viewfinder"></p>
+
+When it opens, the four brackets from the icon hunt for focus, snap in tight onto the lens dot with a light tap, then grow out into the scanner's own viewfinder while the camera fades in behind them. It takes about three quarters of a second. The brackets you end on are the scanner's brackets, not a copy, so there's no swap at the end. It plays once per cold launch and a tap skips it. With Reduce Motion on, the mark holds for a moment and the scanner fades in over it. [Slow motion](docs/screenshots/splash-slow.gif).
+
 ## Screenshots
 
 | Looking | Found | A safe link |
@@ -127,7 +131,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 120 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing ones cover:
+There are 132 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -140,6 +144,7 @@ There are 120 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing
 - reading three codes out of one photo with Vision, in order
 - the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, and the dim and background scale that follow its height
 - what Details lists: a pass or fail row per check, and every field for each kind of code
+- the opening animation: phases in order inside 0.76 s, a first frame the same size and place as the launch image, the hunt, the lock's one small overshoot, an end state exactly equal to the scanner's brackets, the credit coming and going without popping, and the Reduce Motion path
 - who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top
 
 `LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled, by the header, up from the content, a flick to close, and a drag that starts on Open in Safari, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
@@ -153,6 +158,9 @@ A few are in the scheme, switched off. Turn them on under Product › Scheme ›
 - `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded` and `contact-expanded` open it pulled all the way up.
 - `-LensirDemo drawer-tour` plays the drawer through by itself, since you can't drag in the Simulator: the brackets snap, the drawer rises, expands, settles back and is flicked away. It's how the recording in `~/Movies/Lensir drawer/` was made.
 - `-LensirOpenHistory` opens History on launch, filled with demo scans. Add `-LensirEmptyHistory` to see it empty.
+- `-LensirNoSplash` skips the opening animation, for screenshots.
+- `-LensirSplashSlow` plays the opening animation 4× slower, for tuning it.
+- `-LensirSplashAt 0.3` holds the opening animation at that many seconds in, for stills. It never moves on to the scanner.
 - `-LensirCameraDenied` acts as if camera access is turned off in Settings.
 - `-LensirNoCamera` acts as if the phone has no camera.
 
@@ -161,7 +169,9 @@ Demo runs keep history in memory, so they never touch your real history.
 ### Scripts
 
 - `scripts/screenshots.sh` builds Lensir for the Simulator and takes the screenshots in `docs/screenshots/`.
+- `scripts/record-splash.sh` records the opening animation in the Simulator at normal speed and 4× slow, into `~/Movies/Lensir splash/`, and opens the normal one in QuickTime. If the Simulator keeps showing an old launch screen after the mark changes, run it on a fresh simulator with `SIM=<udid>`: iOS caches launch screens, even across reinstalls.
 - `scripts/make-icon.py` draws the app icon. Run `python3 scripts/make-icon.py` to regenerate it (it needs Pillow).
+- `scripts/make-launch-mark.py` draws the launch screen's mark from the same numbers the opening animation starts from.
 
 ## Project layout
 
@@ -173,12 +183,13 @@ Lensir/            the app
   Scanner/         the screen: camera (VisionKit, with an AVFoundation fallback),
                    brackets, pill, photos, demo scenes
   Result/          the drawer and its state, the address text, saving contacts, joining Wi-Fi
+  Splash/          the opening animation: SplashLogic (pure, tested), the dot, ring and credit
   History/         SwiftData history and Settings
   Components/      colours, type, the press style
 LensirTests/       Swift Testing suites
 LensirUITests/     real-touch drawer gesture tests (XCTest)
 Config/            Lensir.xcconfig (bundle prefix, team, Wi-Fi join), Info.plist, entitlements
-scripts/           screenshots and the icon
+scripts/           screenshots, the splash recording, the icon and the launch mark
 ```
 
 ## License

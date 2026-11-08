@@ -15,6 +15,9 @@ struct ScanOverlay: View {
     var dim: Double
     var warning: Bool
     var showsBrackets: Bool
+    /// 4 pt; the opening animation starts them at the launch mark's 5.
+    var stroke: CGFloat = SplashLogic.scannerStroke
+    var bracketOpacity: Double = 1
 
     var body: some View {
         ZStack {
@@ -22,7 +25,8 @@ struct ScanOverlay: View {
                 .fill(Color.black.opacity(dim), style: FillStyle(eoFill: true))
             if showsBrackets {
                 BracketsShape(frame: frame)
-                    .stroke(warning ? Palette.warning : .white, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                    .stroke(warning ? Palette.warning : .white, style: StrokeStyle(lineWidth: stroke, lineCap: .round, lineJoin: .round))
+                    .opacity(bracketOpacity)
                     .transition(.opacity)
             }
         }
@@ -34,7 +38,7 @@ struct ScanOverlay: View {
 private typealias FrameData = AnimatablePair<CGRect.AnimatableData, AnimatablePair<CGFloat, CGFloat>>
 
 private extension BracketFrame {
-    var animatableData: FrameData {
+    nonisolated var animatableData: FrameData {
         get { FrameData(rect.animatableData, AnimatablePair(cornerRadius, arm)) }
         set {
             rect.animatableData = newValue.first
@@ -45,7 +49,7 @@ private extension BracketFrame {
 }
 
 /// The whole screen with a rounded hole where the brackets are.
-struct DimShape: Shape {
+nonisolated struct DimShape: Shape {
     var frame: BracketFrame
 
     var animatableData: AnimatablePair<CGRect.AnimatableData, AnimatablePair<CGFloat, CGFloat>> {
@@ -61,7 +65,7 @@ struct DimShape: Shape {
 }
 
 /// Four corners: an arc with a straight arm running off each end.
-struct BracketsShape: Shape {
+nonisolated struct BracketsShape: Shape {
     var frame: BracketFrame
 
     var animatableData: AnimatablePair<CGRect.AnimatableData, AnimatablePair<CGFloat, CGFloat>> {

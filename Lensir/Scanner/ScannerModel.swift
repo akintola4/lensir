@@ -62,6 +62,9 @@ final class ScannerModel {
     /// Several codes in one photo: the list to pick from.
     var photoCodes: [PhotoCode] = []
     var reduceMotion = false
+    /// Off during the opening animation, so a code in view can't take the
+    /// brackets before they've become the viewfinder.
+    var acceptsCodes = true
 
     private var lostTask: Task<Void, Never>?
     private var noticeTask: Task<Void, Never>?
@@ -69,7 +72,7 @@ final class ScannerModel {
     /// The camera sees a code. A new one snaps the brackets onto it with a
     /// haptic; the same one moving just pulls them along.
     func found(_ new: Detection) {
-        guard result == nil else { return }
+        guard result == nil, acceptsCodes else { return }
         lostTask?.cancel()
         let isNew = detection?.raw != new.raw
         if isNew {

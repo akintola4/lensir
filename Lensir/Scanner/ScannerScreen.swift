@@ -23,33 +23,57 @@ struct ScannerScreen: View {
     @State private var drawer = DrawerState()
     /// Where the demo camera's code sits, for the drawer tour.
     @State private var demoFrame: CGRect?
+    /// The opening animation: once per cold launch, since this screen lives
+    /// as long as the process.
+    @State private var splashStart: Date?
+    @State private var splashDone = LaunchOptions.skipSplash
+    @State private var splashLocked = false
+    @State private var splashStarting = false
+    private let splashTimeline = SplashLogic.Timeline().slowed(by: LaunchOptions.splashSlowdown)
+    private let stillTimeline = SplashLogic.StillTimeline()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        GeometryReader { proxy in
-            let safe = proxy.safeAreaInsets
-            let size = CGSize(width: proxy.size.width + safe.leading + safe.trailing,
-                              height: proxy.size.height + safe.top + safe.bottom)
-            ZStack(alignment: .topLeading) {
-                Color.black
-                // The page: everything under the drawer. It sinks back a
-                // little as the drawer expands, like Vaul's background scale.
+        // The clock only runs during the opening animation.
+        TimelineView(.animation(paused: splashDone || splashStart == nil)) { context in
+            GeometryReader { proxy in
+                let safe = proxy.safeAreaInsets
+                let size = CGSize(width: proxy.size.width + safe.leading + safe.trailing,
+                                  height: proxy.size.height + safe.top + safe.bottom)
+                let splash = splashFrame(at: context.date, screen: size)
                 ZStack(alignment: .topLeading) {
-                    camera(size: size)
-                    overlay(size: size)
-                    controls(safe: safe)
-                    pill(size: size)
+                    Color.black
+                    // The page: everything under the drawer. It sinks back a
+                    // little as the drawer expands, like Vaul's background scale.
+                    ZStack(alignment: .topLeading) {
+                        camera(size: size)
+                            .opacity(splash?.scene ?? 1)
+                        overlay(size: size, splash: splash)
+                        if let splash { SplashMarks(splash: splash) }
+                        controls(safe: safe)
+                            .opacity(splash?.scene ?? 1)
+                        pill(size: size)
+                    }
+                    .frame(width: size.width, height: size.height)
+                    .clipShape(RoundedRectangle(cornerRadius: model.result == nil ? 0 : drawer.backgroundRadius, style: .continuous))
+                    .scaleEffect(model.result == nil ? 1 : drawer.backgroundScale)
+                    if let splash {
+                        SplashCredit(opacity: splash.credit, bottomInset: safe.bottom)
+                            .frame(width: size.width, height: size.height)
+                        // Tap anywhere to skip.
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: skipSplash)
+                            .accessibilityHidden(true)
+                    }
+                    drawerLayer(size: size, safe: safe)
                 }
                 .frame(width: size.width, height: size.height)
-                .clipShape(RoundedRectangle(cornerRadius: model.result == nil ? 0 : drawer.backgroundRadius, style: .continuous))
-                .scaleEffect(model.result == nil ? 1 : drawer.backgroundScale)
-                drawerLayer(size: size, safe: safe)
+                .coordinateSpace(.named("screen"))
+                .ignoresSafeArea()
             }
-            .frame(width: size.width, height: size.height)
-            .coordinateSpace(.named("screen"))
-            .ignoresSafeArea()
         }
         .background(Color.black)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
@@ -65,13 +89,18 @@ struct ScannerScreen: View {
             saveToHistory()
         }
         .onChange(of: photoItem) { readPhoto() }
-        .onChange(of: scenePhase) {
+        .onChange(of: scenePhase, initial: true) {
+            // The clock starts once the app is actually drawing (FirstFrames),
+            // not when this view is built: on a slow launch it would be over
+            // before iOS showed it.
+            if scenePhase == .active { startSplash() }
             if scenePhase != .active, model.torchOn {
                 model.torchOn = false
                 CameraAccess.setTorch(false)
             }
         }
         .sensoryFeedback(trigger: model.foundCount) { _, _ in settings.haptics ? .impact(weight: .medium) : nil }
+        .sensoryFeedback(trigger: splashLocked) { _, locked in settings.haptics && locked ? .impact(weight: .light) : nil }
         .sheet(isPresented: $showingHistory, onDismiss: openPendingRecord) {
             HistoryView(settings: settings) { record in
                 pendingHistoryRecord = (record.raw, record.symbology, record.date)
@@ -127,16 +156,23 @@ struct ScannerScreen: View {
         [.dataScanner, .capture, .demo].contains(model.camera)
     }
 
-    @ViewBuilder private func overlay(size: CGSize) -> some View {
-        if cameraIsLive {
-            let frame = model.detection.map { ScanGeometry.foundFrame(around: $0.bounds, in: size) } ?? ScanGeometry.lookingFrame(in: size)
+    /// The dim and the brackets. During the opening animation the brackets
+    /// are the splash's: the same shape, driven by its clock, so they end on
+    /// exactly this frame with nothing swapped.
+    @ViewBuilder private func overlay(size: CGSize, splash: SplashFrame?) -> some View {
+        if cameraIsLive || splash != nil {
+            let frame = splash?.brackets ?? model.detection.map { ScanGeometry.foundFrame(around: $0.bounds, in: size) } ?? ScanGeometry.lookingFrame(in: size)
             let warning = model.result?.summary.isWarning ?? model.detectionSummary?.isWarning ?? false
             let base = ScanGeometry.dimOpacity(found: model.detection != nil)
+            let dim = model.result == nil ? base : drawer.dim(base: base)
             ScanOverlay(
                 frame: frame,
-                dim: model.result == nil ? base : drawer.dim(base: base),
+                dim: cameraIsLive ? dim * (splash?.scene ?? 1) : 0,
                 warning: warning && (model.detection != nil || model.result != nil),
-                showsBrackets: !(model.result != nil && model.detection == nil)
+                showsBrackets: !(model.result != nil && model.detection == nil),
+                stroke: splash?.stroke ?? SplashLogic.scannerStroke,
+                // No camera: the brackets fade out as the message comes in.
+                bracketOpacity: cameraIsLive ? (splash?.bracketOpacity ?? 1) : 1 - (splash?.scene ?? 1)
             )
             .animation(Motion.fade, value: warning)
             .frame(width: size.width, height: size.height)
@@ -256,6 +292,7 @@ struct ScannerScreen: View {
     // MARK: - Actions
 
     private func start() async {
+        model.acceptsCodes = splashDone
         model.camera = await CameraAccess.resolve()
         guard let scene = LaunchOptions.demo else { return }
         if scene == .photos, let data = DemoContent.photoWithCodes() {
@@ -280,6 +317,55 @@ struct ScannerScreen: View {
                 model.result = ScanResult(raw: payload, symbology: "QR", source: .camera)
             }
         }
+    }
+
+    // MARK: - Opening animation
+
+    /// Everything the opening animation sets at time `date`, or nil once it's done.
+    private func splashFrame(at date: Date, screen: CGSize) -> SplashFrame? {
+        guard !splashDone else { return nil }
+        let t = LaunchOptions.splashFrozenAt ?? splashStart.map { date.timeIntervalSince($0) } ?? 0
+        return reduceMotion
+            ? SplashFrame.still(at: t, in: stillTimeline, screen: screen)
+            : SplashFrame.moving(at: t, in: splashTimeline, screen: screen)
+    }
+
+    private func startSplash() {
+        guard !splashDone, splashStart == nil, !splashStarting else { return }
+        splashStarting = true
+        Task {
+            await FirstFrames.wait()
+            // The display ticks a little before iOS swaps the launch screen
+            // for the app. Hold the first frame, which is the launch image,
+            // so the hunt starts where you can see it.
+            try? await Task.sleep(for: .milliseconds(120))
+            let began = Date.now
+            splashStart = began
+            guard LaunchOptions.splashFrozenAt == nil else { return }
+            func sleep(until time: Double) async {
+                try? await Task.sleep(for: .seconds(max(time - Date.now.timeIntervalSince(began), 0)))
+            }
+            if !reduceMotion {
+                await sleep(until: splashTimeline.lockStarts)
+                if !splashDone { splashLocked = true }
+            }
+            await sleep(until: reduceMotion ? stillTimeline.total : splashTimeline.total)
+            finishSplash()
+        }
+    }
+
+    /// The last frame already is the scanner, so this changes nothing on
+    /// screen; it just stops the clock and lets codes in.
+    private func finishSplash() {
+        guard !splashDone else { return }
+        splashDone = true
+        model.acceptsCodes = true
+    }
+
+    /// A tap: everything settles into the scanner at once.
+    private func skipSplash() {
+        guard !splashDone else { return }
+        withAnimation(.easeOut(duration: 0.2)) { finishSplash() }
     }
 
     /// `-LensirDemo drawer-tour`: what a finger would do, on a timer, since

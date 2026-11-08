@@ -22,7 +22,7 @@ final class DrawerGestureUITests: XCTestCase {
 
     private func launch(_ scene: String) {
         app = XCUIApplication()
-        app.launchArguments = ["-LensirDemo", scene]
+        app.launchArguments = ["-LensirDemo", scene, "-LensirNoSplash"]
         app.launch()
         XCTAssertTrue(grabber.waitForExistence(timeout: 5))
     }

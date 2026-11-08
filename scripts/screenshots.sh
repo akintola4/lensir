@@ -25,7 +25,7 @@ xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --ba
 
 shot() { # file, launch arguments...
   local file=$1; shift
-  xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" "$@" >/dev/null
+  xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" -LensirNoSplash "$@" >/dev/null
   sleep 3
   xcrun simctl io "$UDID" screenshot "$OUT/$file" >/dev/null 2>&1
   echo "wrote $OUT/$file"

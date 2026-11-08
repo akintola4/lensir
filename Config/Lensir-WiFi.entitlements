@@ -4,5 +4,9 @@
 <dict>
 	<key>com.apple.developer.networking.HotspotConfiguration</key>
 	<true/>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(LENSIR_APP_GROUP)</string>
+	</array>
 </dict>
 </plist>

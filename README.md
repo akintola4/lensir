@@ -56,6 +56,22 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 - A torch button for dark rooms, and a Haptics switch in Settings (behind History).
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.
 
+## Straight to the scanner
+
+Each of these opens Lensir on the camera. If you left a result, History or the photo list open last time, it closes.
+
+- Control Center: swipe down from the top-right corner, tap +, then Add a Control, and search for Lensir. The control is Scan with Lensir, drawn with Lensir's brackets and dot.
+- The Lock Screen's two bottom buttons: the same control can take the place of the torch or the camera. Touch and hold the Lock Screen, tap Customize, then Lock Screen, remove one of the two buttons with −, tap + and pick Scan with Lensir.
+- The Action Button (iPhone 15 Pro and later): in Settings › Action Button, swipe to Controls, tap Choose a Control and pick Scan with Lensir. The Shortcut option works as well; choose Lensir, then Scan a Code.
+- A Lock Screen widget: while customizing the Lock Screen, tap the row under the clock and add Lensir's Scan widget. The round one is just the mark; the wide one says "Scan a code". Tap it to open the scanner.
+- Siri and Spotlight: say "Scan with Lensir" or "Check a QR code with Lensir", or type "scan" in Spotlight. It's in the Shortcuts app too, already set up.
+
+<img src="docs/screenshots/widgets/lock.png" width="300" alt="The Lock Screen with Lensir's round widget, the brackets and dot, and the wide one that says Scan a code">
+
+If one of these starts Lensir from cold, you only see the end of the opening animation. The brackets grow from the launch mark into the viewfinder in 0.3 s and the camera fades in behind them. The hunt, the lock and its tap, and the credit are skipped. The camera needs about 0.3 s to start anyway, so this doesn't hold you up. If Lensir was already open, it goes straight to the camera.
+
+The widget opens `lensir://scan`. The control, the Action Button and Siri run `OpenScannerIntent`. Both go through the same code in the app.
+
 ## Why it doesn't open links by itself
 
 Apple's Camera app opens a link the moment you tap its banner, and plenty of scanner apps open it as soon as they read it. That's exactly what a scam code is counting on. A sticker over the real code on a parking meter or a market stall can send you to a page that looks like your bank.
@@ -108,7 +124,7 @@ Pick the Lensir scheme and a simulator (I use iPhone 17 Pro), then press Run. Yo
    DEVELOPMENT_TEAM = YOURTEAMID
    ```
 
-   `Config/Lensir.xcconfig` includes it if it exists. You can also edit `Lensir.xcconfig` directly, or leave the team empty and choose it under Signing & Capabilities. The bundle ID is `<prefix>.lensir`.
+   `Config/Lensir.xcconfig` includes it if it exists. You can also edit `Lensir.xcconfig` directly, or leave the team empty and choose it under Signing & Capabilities. The bundle IDs (`<prefix>.lensir`, and `<prefix>.lensir.widget` for the control and the widget) and the App Group (`group.<prefix>.lensir`) are all built from the prefix.
 2. Plug in your phone, select it and press Run. The first time, go to Settings › General › VPN & Device Management on the phone and trust your developer certificate.
 
 From the command line:
@@ -116,6 +132,8 @@ From the command line:
 ```bash
 xcodebuild build -scheme Lensir -destination 'id=<your iPhone UDID>' -allowProvisioningUpdates
 ```
+
+`-allowProvisioningUpdates` lets Xcode register the widget's bundle ID and the App Group for you. App Groups work with a free Apple ID, and the widget extension lives inside the app, so it doesn't count against the free account's limit of three apps.
 
 With a free Apple ID, an app you install from Xcode stops opening after 7 days. Run it from Xcode again to get another 7. Your history survives the reinstall.
 
@@ -131,7 +149,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 132 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing ones cover:
+There are 166 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 10 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -145,9 +163,10 @@ There are 132 tests in `LensirTests` and 8 in `LensirUITests`. The Swift Testing
 - the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, and the dim and background scale that follow its height
 - what Details lists: a pass or fail row per check, and every field for each kind of code
 - the opening animation: phases in order inside 0.76 s, a first frame the same size and place as the launch image, the hunt, the lock's one small overshoot, an end state exactly equal to the scanner's brackets, the credit coming and going without popping, and the Reduce Motion path
+- `lensir://scan`: which links it reads and which it ignores, the URL scheme in the Info.plist, the intent and the link landing in the same inbox, what the link closes, and the 0.3 s opening it plays on a cold launch (starts on the launch mark, ends on the scanner's brackets, no credit)
 - who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top
 
-`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled, by the header, up from the content, a flick to close, and a drag that starts on Open in Safari, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
+`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled, by the header, up from the content, a flick to close, and a drag that starts on Open in Safari, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -171,6 +190,8 @@ Demo runs keep history in memory, so they never touch your real history.
 - `scripts/screenshots.sh` builds Lensir for the Simulator and takes the screenshots in `docs/screenshots/`.
 - `scripts/record-splash.sh` records the opening animation in the Simulator at normal speed and 4× slow, into `~/Movies/Lensir splash/`, and opens the normal one in QuickTime. If the Simulator keeps showing an old launch screen after the mark changes, run it on a fresh simulator with `SIM=<udid>`: iOS caches launch screens, even across reinstalls.
 - `scripts/make-icon.py` draws the app icon. Run `python3 scripts/make-icon.py` to regenerate it (it needs Pillow).
+- `scripts/widget-screenshots.sh` renders the Lock Screen widget's real views into `docs/screenshots/widgets/`, since the Simulator can't add a widget without tapping.
+- `scripts/make-control-symbol.py` draws `lensir.viewfinder`, the custom SF Symbol on the control, in three weights.
 - `scripts/make-launch-mark.py` draws the launch screen's mark from the same numbers the opening animation starts from.
 
 ## Project layout
@@ -179,17 +200,20 @@ Demo runs keep history in memory, so they never touch your real history.
 Lensir/            the app
   Logic/           pure and tested: PayloadParser, LinkSafety, Confusables, Brands,
                    Punycode, LinkAddress, ResultSummary, ResultDetails, ScanGeometry,
-                   DrawerLogic, HistoryLogic
+                   DrawerLogic, HistoryLogic, ScanRouting
   Scanner/         the screen: camera (VisionKit, with an AVFoundation fallback),
                    brackets, pill, photos, demo scenes
   Result/          the drawer and its state, the address text, saving contacts, joining Wi-Fi
   Splash/          the opening animation: SplashLogic (pure, tested), the dot, ring and credit
   History/         SwiftData history and Settings
   Components/      colours, type, the press style
+Shared/            in the app and the widget: the brackets, lensir://scan, OpenScannerIntent,
+                   the Lock Screen widget's views
+LensirWidget/      the extension: the Control Center control and the Lock Screen widget
 LensirTests/       Swift Testing suites
-LensirUITests/     real-touch drawer gesture tests (XCTest)
-Config/            Lensir.xcconfig (bundle prefix, team, Wi-Fi join), Info.plist, entitlements
-scripts/           screenshots, the splash recording, the icon and the launch mark
+LensirUITests/     real-touch drawer gesture tests and lensir://scan (XCTest)
+Config/            Lensir.xcconfig (bundle prefix, team, App Group, Wi-Fi join), Info.plists, entitlements
+scripts/           screenshots, the splash recording, the icon, the launch mark and the control's symbol
 ```
 
 ## License

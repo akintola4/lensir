@@ -8,13 +8,6 @@
 
 import CoreGraphics
 
-nonisolated struct BracketFrame: Equatable, Sendable {
-    var rect: CGRect
-    var cornerRadius: CGFloat
-    /// How far each bracket reaches from its corner, along each edge.
-    var arm: CGFloat
-}
-
 nonisolated enum ScanGeometry {
     /// The idle window: a square at about two-thirds of the width, a little
     /// above the middle, where a thumb-held phone naturally points.

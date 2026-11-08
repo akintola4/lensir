@@ -14,6 +14,8 @@ import SwiftUI
 
 struct ScannerScreen: View {
     var settings: AppSettings
+    /// lensir://scan, from the widget, the control, the Action Button or Siri.
+    var inbox: LinkInbox
 
     @State private var model = ScannerModel()
     @State private var photoItem: PhotosPickerItem?
@@ -29,8 +31,14 @@ struct ScannerScreen: View {
     @State private var splashDone = LaunchOptions.skipSplash
     @State private var splashLocked = false
     @State private var splashStarting = false
-    private let splashTimeline = SplashLogic.Timeline().slowed(by: LaunchOptions.splashSlowdown)
-    private let stillTimeline = SplashLogic.StillTimeline()
+    /// Opened straight to the scanner on a cold launch: the short version.
+    @State private var quickSplash = false
+    private var splashTimeline: SplashLogic.Timeline {
+        (quickSplash ? .quick : SplashLogic.Timeline()).slowed(by: LaunchOptions.splashSlowdown)
+    }
+    private var stillTimeline: SplashLogic.StillTimeline {
+        quickSplash ? .quick : SplashLogic.StillTimeline()
+    }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -89,6 +97,9 @@ struct ScannerScreen: View {
             saveToHistory()
         }
         .onChange(of: photoItem) { readPhoto() }
+        .onChange(of: inbox.latest, initial: true) {
+            if let request = inbox.latest { open(request.link) }
+        }
         .onChange(of: scenePhase, initial: true) {
             // The clock starts once the app is actually drawing (FirstFrames),
             // not when this view is built: on a slow launch it would be over
@@ -347,7 +358,7 @@ struct ScannerScreen: View {
             func sleep(until time: Double) async {
                 try? await Task.sleep(for: .seconds(max(time - Date.now.timeIntervalSince(began), 0)))
             }
-            if !reduceMotion {
+            if !reduceMotion && splashTimeline.hasLock {
                 await sleep(until: splashTimeline.lockStarts)
                 if !splashDone { splashLocked = true }
             }
@@ -368,6 +379,24 @@ struct ScannerScreen: View {
     private func skipSplash() {
         guard !splashDone else { return }
         withAnimation(.easeOut(duration: 0.2)) { finishSplash() }
+    }
+
+    /// lensir://scan: close whatever is open and get to the camera.
+    private func open(_ link: LensirLink) {
+        let plan = ScanRouting.plan(for: link, splashDone: splashDone, splashStarted: splashStart != nil,
+                                    hasResult: model.result != nil, showingHistory: showingHistory,
+                                    showingPhotoList: !model.photoCodes.isEmpty)
+        switch plan.splash {
+        case .none: break
+        case .quick: quickSplash = true
+        case .skip: skipSplash()
+        }
+        if plan.closeHistory {
+            pendingHistoryRecord = nil
+            showingHistory = false
+        }
+        if plan.closePhotoList { model.photoCodes = [] }
+        if plan.closeDrawer { closeDrawer() }
     }
 
     /// `-LensirDemo drawer-tour`: what a finger would do, on a timer, since

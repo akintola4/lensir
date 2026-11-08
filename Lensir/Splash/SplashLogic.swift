@@ -49,6 +49,16 @@ nonisolated enum SplashLogic {
         var lock = 0.18
         var grow = 0.40
 
+        /// Opened from Control Center, the Action Button, the Lock Screen or
+        /// Siri: no hunt and no lock, just the grow from the launch mark into
+        /// the viewfinder. The camera takes about this long to start anyway,
+        /// so it costs nothing and covers the black.
+        static let quick = Timeline(hunt: 0, lock: 0, grow: 0.3)
+
+        /// The quick version starts growing from the mark itself, since there
+        /// was no lock to tighten it.
+        var hasLock: Bool { lock > 0 }
+
         func slowed(by factor: Double) -> Timeline {
             Timeline(hunt: hunt * factor, lock: lock * factor, grow: grow * factor)
         }
@@ -64,6 +74,9 @@ nonisolated enum SplashLogic {
         var hold = 0.45
         var fade = 0.25
         var total: Double { hold + fade }
+
+        /// Reduce Motion's quick version: straight into the cross-fade.
+        static let quick = StillTimeline(hold: 0, fade: 0.2)
     }
 
     // MARK: - Brackets
@@ -88,7 +101,7 @@ nonisolated enum SplashLogic {
         let target = ScanGeometry.lookingFrame(in: screen)
         // Not a blend that should come out equal: the scanner's own frame.
         if t >= timeline.total { return (target, scannerStroke) }
-        let start = square(tight, around: centre)
+        let start = square(timeline.hasLock ? tight : rest, around: centre)
         let p = CGFloat(growCurve.value(at: progress(t - timeline.growStarts, over: timeline.grow)))
         let rect = CGRect(x: lerp(start.rect.minX, target.rect.minX, p),
                           y: lerp(start.rect.minY, target.rect.minY, p),
@@ -151,13 +164,16 @@ nonisolated enum SplashLogic {
 
     /// "Made by DEVAKINTOLA": in with the hunt, out in the first half of the
     /// grow, before the scanner's own controls are more than half in.
+    /// The quick version has no credit: it would only flicker.
     static func creditOpacity(at t: Double, in timeline: Timeline) -> Double {
-        min(easeInOut(progress(t, over: timeline.hunt)),
+        guard timeline.hunt > 0 else { return 0 }
+        return min(easeInOut(progress(t, over: timeline.hunt)),
             1 - easeInOut(progress(t - timeline.growStarts, over: timeline.grow * 0.5)))
     }
 
     static func stillCreditOpacity(at t: Double, in timeline: StillTimeline) -> Double {
-        min(progress(t, over: 0.15), 1 - progress(t - timeline.hold, over: timeline.fade))
+        guard timeline.hold > 0 else { return 0 }
+        return min(progress(t, over: 0.15), 1 - progress(t - timeline.hold, over: timeline.fade))
     }
 
     static func stillSceneOpacity(at t: Double, in timeline: StillTimeline) -> Double {

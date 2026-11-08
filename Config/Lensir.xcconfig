@@ -4,7 +4,7 @@
 //  The only file to edit before running Lensir on your own iPhone.
 //
 //  LENSIR_BUNDLE_PREFIX  Something unique to you, e.g. com.yourname. The bundle
-//                        ID is built from it.
+//                        IDs and the App Group are built from it, so they always match.
 //  DEVELOPMENT_TEAM      Your Team ID (Xcode > Settings > Accounts), or leave it
 //                        empty and pick the team in Signing & Capabilities.
 //
@@ -14,6 +14,11 @@
 LENSIR_BUNDLE_PREFIX = foster
 DEVELOPMENT_TEAM =
 
+// The app and its widget extension (the Control Center control and the Lock
+// Screen widget) share this group. Nothing is stored in it yet; it's there so
+// a widget can show something from the app later without re-signing.
+LENSIR_APP_GROUP = group.$(LENSIR_BUNDLE_PREFIX).lensir
+
 // Joining a Wi-Fi network from a code needs the Hotspot Configuration
 // capability, which a free (personal team) Apple account can't sign:
 // "Personal development teams ... do not support the Hotspot capability."
@@ -22,7 +27,7 @@ DEVELOPMENT_TEAM =
 LENSIR_WIFI_JOIN = NO
 
 LENSIR_ENTITLEMENTS_YES = Config/Lensir-WiFi.entitlements
-LENSIR_ENTITLEMENTS_NO =
+LENSIR_ENTITLEMENTS_NO = Config/Lensir.entitlements
 LENSIR_ENTITLEMENTS = $(LENSIR_ENTITLEMENTS_$(LENSIR_WIFI_JOIN))
 LENSIR_WIFI_CONDITION_YES = WIFI_JOIN
 LENSIR_WIFI_CONDITION_NO =

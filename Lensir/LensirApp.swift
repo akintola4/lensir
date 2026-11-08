@@ -13,12 +13,14 @@ import SwiftUI
 @main
 struct LensirApp: App {
     @State private var settings = AppSettings()
+    private let inbox = LinkInbox.shared
     private let container = LensirStore.makeContainer()
 
     var body: some Scene {
         WindowGroup {
-            ScannerScreen(settings: settings)
+            ScannerScreen(settings: settings, inbox: inbox)
                 .preferredColorScheme(.dark)
+                .onOpenURL { inbox.receive($0) }
         }
         .modelContainer(container)
     }
@@ -27,7 +29,10 @@ struct LensirApp: App {
 enum LensirStore {
     static func makeContainer() -> ModelContainer {
         let inMemory = LaunchOptions.demo != nil || LaunchOptions.openHistory
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        // Stay in the app's own container. With an App Group in the
+        // entitlements, SwiftData's default would move the store into the
+        // group and leave the history already on the phone behind.
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory, groupContainer: .none)
         let container: ModelContainer
         do {
             container = try ModelContainer(for: ScanRecord.self, configurations: configuration)

@@ -34,6 +34,7 @@ struct FoundPill: View {
         .buttonStyle(PressableStyle())
         .accessibilityLabel(accessibilityText)
         .accessibilityHint("Shows what's inside before anything opens")
+        .accessibilityIdentifier("found-pill")
     }
 
     @ViewBuilder private var icon: some View {

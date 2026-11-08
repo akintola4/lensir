@@ -195,7 +195,7 @@ struct CodePreview: View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         ZStack {
             // The code itself is always black on white, in either appearance.
-            shape.fill(image == nil ? Palette.raised : Color.white)
+            shape.fill(image == nil ? Palette.raised : Palette.paper)
             if let image {
                 Image(decorative: image, scale: 1)
                     .interpolation(.none)
@@ -489,8 +489,7 @@ private struct MakeForm: View {
         VStack(spacing: 6) {
             DrawerButton(action: onShow) {
                 Text("Show code")
-                    .primaryButtonStyle()
-                    .opacity(canMake ? 1 : 0.4)
+                    .primaryButtonStyle(enabled: canMake)
             }
             .buttonStyle(PressableStyle())
             .disabled(!canMake)
@@ -505,8 +504,7 @@ private struct MakeForm: View {
                 }
                 .contentTransition(.opacity)
                 .font(Typeface.secondaryButton)
-                .foregroundStyle(isKept ? Palette.checkText : Palette.ink)
-                .opacity(canMake ? 1 : 0.4)
+                .foregroundStyle(!canMake ? Palette.secondaryText : isKept ? Palette.checkText : Palette.ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
             }

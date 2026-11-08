@@ -183,6 +183,9 @@ struct QuickSplashTests {
     @Test func sceneIsInByTheEnd() {
         #expect(SplashLogic.sceneOpacity(at: 0, in: quick) == 0)
         #expect(SplashLogic.sceneOpacity(at: quick.total, in: quick) == 1)
+        // No credit to wait for: the buttons come in with the grow.
+        #expect(SplashLogic.controlsOpacity(at: quick.total * 0.25, in: quick) > 0)
+        #expect(abs(SplashLogic.controlsOpacity(at: quick.total, in: quick) - 1) < 1e-6)
     }
 }
 

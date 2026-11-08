@@ -28,9 +28,9 @@ struct FullScreenCode: View {
     /// Sharp at any size it's shared or printed at.
     private var shareImage: UIImage? { CodeImage.image(for: raw, atLeast: 1200) }
 
-    /// #6E6E73 as drawn: it holds 4.6:1 on white, so it reads at small sizes.
-    private static let quiet = Color(red: 0x6E / 255, green: 0x6E / 255, blue: 0x73 / 255)
-    private static let saveFill = Color(red: 0xE5 / 255, green: 0xE5 / 255, blue: 0xEA / 255)
+    /// #6E6E73: 5.1:1 on white, so it reads at small sizes.
+    private static let quiet = Palette.paperQuiet
+    private static let saveFill = Palette.paperButton
 
     enum SaveState: Equatable { case saving, saved, denied, failed }
 
@@ -50,7 +50,7 @@ struct FullScreenCode: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(Palette.paper.ignoresSafeArea())
         .environment(\.colorScheme, .light)
         .preferredColorScheme(.light)
         .onAppear {
@@ -75,7 +75,7 @@ struct FullScreenCode: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: closeIcon, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Palette.paperInk)
                     .frame(width: max(44, closeIcon * 2.9), height: max(44, closeIcon * 2.9))
                     .background(Circle().fill(Self.saveFill))
                     .contentShape(Circle())
@@ -109,11 +109,12 @@ struct FullScreenCode: View {
             Text(name)
                 .font(display.monospaced ? .system(.title3, design: .monospaced).weight(.bold)
                                          : .system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Palette.paperInk)
                 .multilineTextAlignment(.center)
                 .padding(.top, 28)
                 .accessibilityAddTraits(.isHeader)
-            Text(display.detail)
+            // "WPA/WPA2" stays whole; a link may still break after a slash.
+            Text(display.kind == .link ? display.detail : Self.keepingSlashes(display.detail))
                 .font(display.kind == .link ? Typeface.address : Typeface.body)
                 .foregroundStyle(Self.quiet)
                 .multilineTextAlignment(.center)
@@ -141,9 +142,9 @@ struct FullScreenCode: View {
                     ShareLink(item: picture, preview: SharePreview(name, image: picture)) {
                         Text("Share")
                             .font(Typeface.primaryButton)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Palette.paper)
                             .frame(maxWidth: .infinity, minHeight: 50)
-                            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(.black))
+                            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Palette.paperInk))
                             .contentShape(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous))
                     }
                     .buttonStyle(PressableStyle())
@@ -158,7 +159,7 @@ struct FullScreenCode: View {
                     }
                     .contentTransition(.opacity)
                     .font(Typeface.primaryButton)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Palette.paperInk)
                     .frame(maxWidth: .infinity, minHeight: 50)
                     .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Self.saveFill))
                     .contentShape(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous))
@@ -167,6 +168,11 @@ struct FullScreenCode: View {
                 .disabled(saveState == .saving)
             }
         }
+    }
+
+    /// Word joiners either side of each slash, so nothing breaks there.
+    static func keepingSlashes(_ text: String) -> String {
+        text.replacingOccurrences(of: "/", with: "\u{2060}/\u{2060}")
     }
 
     private var saveMessage: String? {

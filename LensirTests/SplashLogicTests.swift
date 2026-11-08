@@ -137,6 +137,27 @@ struct SplashLogicTests {
         #expect(p > 0.5)
     }
 
+    /// The credit and the scanner's buttons share the bottom of the screen,
+    /// so the buttons don't start until the credit has gone.
+    @Test func creditLeavesBeforeTheControlsComeIn() {
+        for t in stride(from: 0.0, through: timeline.total, by: 1.0 / 240) {
+            if SplashLogic.controlsOpacity(at: t, in: timeline) > 0 {
+                #expect(SplashLogic.creditOpacity(at: t, in: timeline) == 0)
+            }
+        }
+        #expect(close(SplashLogic.controlsOpacity(at: timeline.total, in: timeline), 1, within: 1e-6))
+    }
+
+    /// In light the screen settles from the white launch screen to the
+    /// veiled camera; it doesn't drop to grey in the first frames.
+    @Test func sceneEasesInRatherThanSnapping() {
+        let early = timeline.growStarts + timeline.grow * 0.1
+        #expect(SplashLogic.sceneOpacity(at: early, in: timeline) < 0.05)
+        let values = stride(from: timeline.growStarts, through: timeline.total, by: 1.0 / 120)
+            .map { SplashLogic.sceneOpacity(at: $0, in: timeline) }
+        #expect(zip(values, values.dropFirst()).allSatisfy { abs($0 - $1) < 0.05 })
+    }
+
     @Test func sceneComesInOnlyDuringTheGrow() {
         #expect(SplashLogic.sceneOpacity(at: timeline.growStarts, in: timeline) == 0)
         #expect(close(SplashLogic.sceneOpacity(at: timeline.total, in: timeline), 1, within: 1e-6))
@@ -148,8 +169,8 @@ struct SplashLogicTests {
         #expect(SplashLogic.creditOpacity(at: timeline.lockStarts, in: timeline) == 1)
         #expect(SplashLogic.creditOpacity(at: timeline.growStarts, in: timeline) == 1)
         #expect(SplashLogic.creditOpacity(at: timeline.total, in: timeline) == 0)
-        // Gone before the scanner's controls are more than half in.
-        let gone = timeline.growStarts + timeline.grow * 0.5
+        // Gone in the first quarter of the grow.
+        let gone = timeline.growStarts + timeline.grow * SplashLogic.creditExit
         #expect(SplashLogic.creditOpacity(at: gone, in: timeline) == 0)
         // Never pops: no jump bigger than a frame's worth.
         let values = stride(from: 0.0, through: timeline.total, by: 1.0 / 120).map { SplashLogic.creditOpacity(at: $0, in: timeline) }

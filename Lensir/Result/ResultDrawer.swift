@@ -35,6 +35,7 @@ struct ResultDrawer: View {
     @State private var savingContact = false
     @State private var wifiStatus: WiFiStatus?
     @AccessibilityFocusState private var titleFocused: Bool
+    @Environment(\.displayScale) private var displayScale
 
     private var summary: ResultSummary { result.summary }
 
@@ -187,8 +188,8 @@ struct ResultDrawer: View {
     private var expandedDetails: some View {
         VStack(alignment: .leading, spacing: 20) {
             Rectangle()
-                .fill(Palette.raised)
-                .frame(height: 1)
+                .fill(Palette.separator)
+                .frame(height: 1 / displayScale)
             Text("Details")
                 .font(Typeface.sectionHeader)
                 .foregroundStyle(Palette.ink)
@@ -277,7 +278,7 @@ struct ResultDrawer: View {
                 DrawerButton { perform(secondary) } label: {
                     buttonLabel(secondary)
                         .font(Typeface.secondaryButton)
-                        .foregroundStyle(secondary == .openAnyway ? Palette.warning : Palette.ink)
+                        .foregroundStyle(secondary == .openAnyway ? Palette.warningLabel : Palette.ink)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
                 }

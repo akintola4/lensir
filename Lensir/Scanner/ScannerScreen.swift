@@ -54,7 +54,7 @@ struct ScannerScreen: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     /// The text size before this screen caps it. The camera controls stop
-    /// at AX1; Make's form goes all the way.
+    /// at AX1; the drawers, a scan's and Make's, go all the way.
     @Environment(\.dynamicTypeSize) private var systemTypeSize
 
     var body: some View {
@@ -67,6 +67,8 @@ struct ScannerScreen: View {
                 let splash = splashFrame(at: context.date, screen: size)
                 ZStack(alignment: .topLeading) {
                     Palette.canvas
+                    // What the page sinks back onto: black, as behind an iOS sheet.
+                    if model.drawerOpen { Palette.backdrop }
                     // The page: everything under the drawer. It sinks back a
                     // little as the drawer expands, like Vaul's background scale.
                     ZStack(alignment: .topLeading) {
@@ -75,7 +77,7 @@ struct ScannerScreen: View {
                         overlay(size: size, splash: splash)
                         if let splash { SplashMarks(splash: splash) }
                         controls(safe: safe)
-                            .opacity(splash?.scene ?? 1)
+                            .opacity(splash?.controls ?? 1)
                         pill(size: size)
                     }
                     .frame(width: size.width, height: size.height)
@@ -222,7 +224,9 @@ struct ScannerScreen: View {
                     showsBrackets: brackets,
                     stroke: splash?.stroke ?? SplashLogic.scannerStroke,
                     // No camera: the brackets fade out as the message comes in.
-                    bracketOpacity: live ? (splash?.bracketOpacity ?? 1) : 1 - (splash?.scene ?? 1)
+                    bracketOpacity: live ? (splash?.bracketOpacity ?? 1) : 1 - (splash?.scene ?? 1),
+                    fillsWindow: model.making || !model.photoCodes.isEmpty,
+                    washesWindow: model.detection == nil && model.result == nil
                 )
             }
             .animation(Motion.fade, value: warning)
@@ -341,6 +345,9 @@ struct ScannerScreen: View {
                     closeDrawer(velocity: velocity)
                 }
                 .id(result.id)
+                // The whole range, like Make: a warning is the one thing
+                // that must be readable at your size.
+                .environment(\.dynamicTypeSize, systemTypeSize)
                 .padding(.leading, safe.leading)
                 .padding(.trailing, safe.trailing)
                 // Laid out at full height and pushed down, so only the top

@@ -68,13 +68,17 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
     /// A finger is on the drawer, as far as catching it goes. Resets on
     /// lift and on cancel alike, so a held drawer is never left hanging.
     @GestureState private var touching = false
+    @Environment(\.displayScale) private var displayScale
 
     private var compactHeight: CGFloat { handleHeight + compactBodyHeight }
     private var fullHeight: CGFloat { handleHeight + scrollContentHeight }
     private var expandedHeight: CGFloat { min(fullHeight, maxHeight) }
     /// Taller than the screen allows: the content scrolls.
     private var overflows: Bool { fullHeight > maxHeight + 0.5 }
-    private var canScroll: Bool { overflows && (!expands || drawer.snap == .expanded) }
+    /// Even compact won't fit, at the largest text sizes: the drawer opens
+    /// as tall as it can, Details shown, and everything scrolls.
+    private var compactOverflows: Bool { expands && compactHeight + bottomInset > maxHeight + 0.5 }
+    private var canScroll: Bool { overflows && (!expands || drawer.snap == .expanded || compactOverflows) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,8 +98,8 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { compactBodyHeight = $0 }
                     if expands {
                         details
-                            .modifier(DrawerExpansionFade(drawer: drawer))
-                            .accessibilityHidden(drawer.snap != .expanded)
+                            .modifier(DrawerExpansionFade(drawer: drawer, shown: compactOverflows))
+                            .accessibilityHidden(drawer.snap != .expanded && !compactOverflows)
                     }
                 }
                 // One height only: room under the content for the home
@@ -120,8 +124,8 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
             let shape = UnevenRoundedRectangle(topLeadingRadius: Metrics.drawerRadius, topTrailingRadius: Metrics.drawerRadius, style: .continuous)
             shape
                 .fill(Palette.sheet)
-                // A hairline where a white drawer meets the camera; none on dark.
-                .overlay(shape.strokeBorder(Palette.drawerEdge, lineWidth: 0.8))
+                // A one-pixel line where a white drawer meets the camera; none on dark.
+                .overlay(shape.strokeBorder(Palette.drawerEdge, lineWidth: 1 / displayScale))
                 .padding(.bottom, -400)
         }
         // Alongside the scroll view and the buttons, not instead of them:
@@ -163,7 +167,9 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
     }
 
     private func report() {
-        if expands {
+        if compactOverflows {
+            drawer.measured(compact: maxHeight, expanded: maxHeight)
+        } else if expands {
             drawer.measured(compact: compactHeight + bottomInset, expanded: expandedHeight)
         } else {
             drawer.measured(compact: expandedHeight, expanded: expandedHeight)
@@ -261,9 +267,11 @@ struct DrawerButton<Label: View>: View {
 /// drawer's body, so the frames of a drag redraw only this.
 private struct DrawerExpansionFade: ViewModifier {
     var drawer: DrawerState
+    /// The drawer has one height and scrolls: Details are simply there.
+    var shown = false
 
     func body(content: Content) -> some View {
-        content.opacity(drawer.expansion)
+        content.opacity(shown ? 1 : drawer.expansion)
     }
 }
 

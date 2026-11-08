@@ -46,7 +46,7 @@ In Light:
 
 | Scanner | A scan | Make | History |
 |---|---|---|---|
-| ![The scanner in Light: black brackets and a white veil over the camera, black Make button](docs/screenshots/looking-light.png) | ![The drawer for paystack.com in Light: a white sheet with a black Open link button](docs/screenshots/safe-link-light.png) | ![The Make drawer in Light: light grey fields, a black chip for Wi-Fi and a black Show code button](docs/screenshots/make-wifi-light.png) | ![History in Light: white cards on grey, with My codes at the top](docs/screenshots/history-light.png) |
+| ![The scanner in Light: black brackets with a white rim, a light grey veil and a lighter window, black Make button](docs/screenshots/looking-light.png) | ![The drawer for paystack.com in Light: a white sheet with a black Open link button](docs/screenshots/safe-link-light.png) | ![The Make drawer in Light: light grey fields, a black chip for Wi-Fi and a black Show code button](docs/screenshots/make-wifi-light.png) | ![History in Light: white cards on grey, with My codes at the top](docs/screenshots/history-light.png) |
 
 Every screen above has a `-light.png` twin in `docs/screenshots/`, and there are Light versions at AX5 and with Increase Contrast for the result drawer and History.
 
@@ -81,7 +81,7 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 - Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. With none kept yet, My codes has a Make a code button; otherwise Make on the scanner is the way in.
 - The photo button reads codes from a picture in your library. If there are several, you pick one from a list.
 - A torch button for dark rooms, and a Haptics switch in Settings (behind History).
-- Lensir follows the phone's Light or Dark setting everywhere, from the opening animation to History. In Dark it's white on black, as it always was. In Light it flips to black on white: the veil around the brackets turns white, and a thin line marks where the drawer meets the camera. A code shown full screen is black on white in both, because that's what other phones scan most reliably.
+- Lensir follows the phone's Light or Dark setting everywhere, from the opening animation to History. In Dark it's white on black, as it always was. In Light it flips to black on white. The veil around the brackets turns a light grey and the window inside them gets a slightly stronger white wash, so the window is always the lightest part of the screen, over a dark room or a sunlit wall, the way it's the brightest part in Dark. The black brackets carry a thin white rim, so they hold at least 3:1 against anything the camera sees, and a one-pixel line marks where the drawer meets the camera. While Make is up there's nothing to aim at, so the window closes and the veil is one even grey. A code shown full screen is black on white in both, because that's what other phones scan most reliably.
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.
 
 ## Straight to the scanner
@@ -199,7 +199,7 @@ There are 242 tests in `LensirTests` (two of them only draw the widget screensho
 - the drawn code: a four-module quiet zone, only black and white pixels, and nearest-neighbour scaling
 - a made lookalike link getting exactly the report a scanned one gets
 - domains wrapping after a dot with the lookalike underline kept
-- Light and Dark: every colour token's value in each, Increase Contrast's darker greys, dark mode's veil matching what it was, and the launch colour and mark having both appearances
+- Light and Dark: every colour token's value in each, Increase Contrast's darker greys, dark mode's veil matching what it was, Light's window never darker than its veil over any scene, and the launch colour and mark having both appearances
 - My codes: keeping the same code twice, renaming, the kind and date on each row, the store it shares with History, and clearing History leaving My codes alone
 - the brightness going up and back once, even if you leave the app and come back
 - the Make drawer's single height, VoiceOver going back to Make when it closes, and the tick on Keep
@@ -218,6 +218,7 @@ A few are in the scheme, switched off. Turn them on under Product › Scheme ›
 - `-LensirDemo make-link` opens the Make drawer filled in. The others are `make-wifi`, `make-risky` (a lookalike link) and `make-show` (the Wi-Fi code full screen).
 - `-LensirOpenHistory` opens History on launch, filled with demo scans and My codes. Add `-LensirEmptyHistory` to see it empty, or `-LensirEmptyCodes` for scans with no My codes.
 - `-LensirNoSplash` skips the opening animation, for screenshots.
+- `-LensirBrightScene` points the stand-in camera at a sunlit wall instead of a dim room, to check the veil and brackets over a bright scene.
 - `-LensirSplashSlow` plays the opening animation 4× slower, for tuning it.
 - `-LensirSplashAt 0.3` holds the opening animation at that many seconds in, for stills. It never moves on to the scanner.
 - `-LensirCameraDenied` acts as if camera access is turned off in Settings.

@@ -35,7 +35,7 @@ struct ThemeTests {
         ("sheet", "#1C1C1E", "#FFFFFF"),
         ("raised", "#2C2C2E", "#F2F2F7"),
         ("chip", "#2C2C2E", "#E9E9EE"),
-        ("secondaryText", "#8E8E93", "#6E6E73"),
+        ("secondaryText", "#A1A1A6", "#6E6E73"),
         ("checkText", "#C7C7CC", "#3C3C43"),
         ("warningText", "#E5E5EA", "#1C1C1E"),
         ("credit", "#FFFFFF", "#6E6E73"),
@@ -44,10 +44,18 @@ struct ThemeTests {
         ("safe", "#34C759", "#248A3D"),
         ("warning", "#FF6961", "#D70015"),
         ("warningOnInk", "#D70015", "#FF6961"),
-        ("controlEdge", "#000000", "#E5E5EA"),
-        ("drawerEdge", "#000000", "#E5E5EA"),
-        ("veil", "#000000", "#FFFFFF"),
+        ("controlEdge", "#000000", "#000000"),
+        ("drawerEdge", "#000000", "#000000"),
+        ("veil", "#000000", "#E5E5EA"),
         ("glow", "#000000", "#FFFFFF"),
+        ("backdrop", "#000000", "#000000"),
+        ("separator", "#38383A", "#000000"),
+        ("disabledFill", "#3A3A3C", "#E5E5EA"),
+        ("warningLabel", "#FF8780", "#D70015"),
+        ("paper", "#FFFFFF", "#FFFFFF"),
+        ("paperInk", "#000000", "#000000"),
+        ("paperQuiet", "#6E6E73", "#6E6E73"),
+        ("paperButton", "#E5E5EA", "#E5E5EA"),
     ]
 
     @Test(arguments: expected)
@@ -58,7 +66,7 @@ struct ThemeTests {
 
     @Test func everyTokenIsCovered() {
         let tested = Set(Self.expected.map(\.0))
-        #expect(Set(Palette.Swatches.all.keys).subtracting(tested) == ["control", "tileEdge"])
+        #expect(Set(Palette.Swatches.all.keys).subtracting(tested) == ["control", "tileEdge", "controlShadow", "lensWash", "bracketHalo"])
     }
 
     @Test func translucentTokens() throws {
@@ -72,6 +80,32 @@ struct ThemeTests {
         #expect(try resolve("drawerEdge", .dark).1 == 0)
         #expect(try resolve("tileEdge", .dark).1 == 0)
         #expect(try resolve("tileEdge", .light) == ("#000000", 0.1))
+        #expect(try resolve("controlShadow", .dark).1 == 0)
+        #expect(try resolve("lensWash", .dark).1 == 0)
+        #expect(try resolve("bracketHalo", .dark).1 == 0)
+        // Light: hairlines of black that darken whatever they sit on.
+        #expect(try resolve("controlEdge", .light) == ("#000000", 0.12))
+        #expect(try resolve("drawerEdge", .light) == ("#000000", 0.08))
+        #expect(try resolve("separator", .light) == ("#000000", 0.1))
+        #expect(try resolve("bracketHalo", .light) == ("#FFFFFF", 1))
+    }
+
+    /// Light's veil is a spotlight like dark's: wherever the brackets wait,
+    /// the window is at least as light as the veil around it, over any
+    /// scene from black to white and at every strength the veil takes.
+    @Test func lightWindowIsNeverDarkerThanItsVeil() {
+        let veil = Palette.Swatches.veil, wash = Palette.Swatches.lensWash
+        let channels = [(veil.light >> 16) & 0xFF, (veil.light >> 8) & 0xFF, veil.light & 0xFF].map { Double($0) }
+        for dim in [ScanGeometry.dimOpacity(found: false), ScanGeometry.dimOpacity(found: true), DrawerLogic.dimMax] {
+            let a = dim * Double(veil.lightAlpha), w = dim * Double(wash.lightAlpha)
+            for scene in stride(from: 0.0, through: 255, by: 1) {
+                for g in channels {
+                    let surround = scene * (1 - a) + g * a
+                    let window = scene * (1 - w) + 255 * w
+                    #expect(window >= surround - 1e-9)
+                }
+            }
+        }
     }
 
     @Test func increaseContrastDarkensGreyOnLight() throws {
@@ -82,7 +116,7 @@ struct ThemeTests {
     }
 
     /// The veil dims dark mode exactly as before: 52% looking, 55% found,
-    /// 70% under an open drawer; and light gets the 62% white veil.
+    /// 70% under an open drawer; and light gets the 62% grey veil.
     @Test func veilKeepsDarkModeAndGivesLightItsVeil() {
         let black = 0.84
         #expect(abs(ScanGeometry.dimOpacity(found: false) * black - 0.52) < 0.002)

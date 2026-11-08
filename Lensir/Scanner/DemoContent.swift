@@ -156,14 +156,8 @@ struct DemoCameraView: View {
         GeometryReader { proxy in
             let window = ScanGeometry.lookingFrame(in: proxy.size).rect
             ZStack(alignment: .topLeading) {
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(red: 0x3B / 255, green: 0x36 / 255, blue: 0x31 / 255), location: 0),
-                        .init(color: Color(red: 0x26 / 255, green: 0x28 / 255, blue: 0x2B / 255), location: 0.55),
-                        .init(color: Color(red: 0x12 / 255, green: 0x14 / 255, blue: 0x17 / 255), location: 1),
-                    ],
-                    startPoint: .top, endPoint: UnitPoint(x: 0.3, y: 1)
-                )
+                LinearGradient(stops: LaunchOptions.brightScene ? Self.brightRoom : Self.dimRoom,
+                               startPoint: .top, endPoint: UnitPoint(x: 0.3, y: 1))
                 if let payload, let image = DemoContent.qrImage(payload) {
                     card(image: image, side: window.width - 96)
                         .position(x: window.midX, y: window.midY)
@@ -172,6 +166,20 @@ struct DemoCameraView: View {
         }
         .accessibilityHidden(true)
     }
+
+    /// A dim, warm room: the scene the approved design was drawn over.
+    private static let dimRoom: [Gradient.Stop] = [
+        .init(color: Color(red: 0x3B / 255, green: 0x36 / 255, blue: 0x31 / 255), location: 0),
+        .init(color: Color(red: 0x26 / 255, green: 0x28 / 255, blue: 0x2B / 255), location: 0.55),
+        .init(color: Color(red: 0x12 / 255, green: 0x14 / 255, blue: 0x17 / 255), location: 1),
+    ]
+
+    /// A sunlit wall, for -LensirBrightScene.
+    private static let brightRoom: [Gradient.Stop] = [
+        .init(color: Color(red: 0xF4 / 255, green: 0xF1 / 255, blue: 0xEA / 255), location: 0),
+        .init(color: Color(red: 0xE6 / 255, green: 0xE3 / 255, blue: 0xDC / 255), location: 0.55),
+        .init(color: Color(red: 0xD2 / 255, green: 0xD0 / 255, blue: 0xCB / 255), location: 1),
+    ]
 
     /// The printed card. CoreImage draws a one-module quiet zone around the
     /// code; the reported frame leaves it out, as VisionKit's bounds do.

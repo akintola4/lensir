@@ -74,6 +74,10 @@ enum LaunchOptions {
     /// `-LensirEmptyCodes`: with -LensirOpenHistory, fill in scans but no My codes.
     static var emptyCodes: Bool { flag("-LensirEmptyCodes") }
 
+    /// `-LensirBrightScene`: the stand-in camera looks at a sunlit wall
+    /// instead of a dim room, to check the veil and brackets over a bright scene.
+    static var brightScene: Bool { flag("-LensirBrightScene") }
+
     /// `-LensirNoSplash`: open straight on the scanner, for screenshots.
     static var skipSplash: Bool { flag("-LensirNoSplash") }
 

@@ -154,7 +154,7 @@ struct MadeCodeRow: View {
         layout {
             ZStack {
                 // Black on white in either appearance, edged so it holds on a white card.
-                RoundedRectangle(cornerRadius: min(thumbnail, 72) * 0.22, style: .continuous).fill(.white)
+                RoundedRectangle(cornerRadius: min(thumbnail, 72) * 0.22, style: .continuous).fill(Palette.paper)
                     .overlay(RoundedRectangle(cornerRadius: min(thumbnail, 72) * 0.22, style: .continuous).strokeBorder(Palette.tileEdge, lineWidth: 1))
                 if let image = CodeImageCache.modules(for: code.raw) {
                     Image(decorative: image, scale: 1)

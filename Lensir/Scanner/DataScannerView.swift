@@ -30,7 +30,8 @@ struct DataScannerView: UIViewControllerRepresentable {
             isHighlightingEnabled: false
         )
         scanner.delegate = context.coordinator
-        scanner.view.backgroundColor = .black
+        // The canvas until the first frame arrives, white in light.
+        scanner.view.backgroundColor = Palette.Swatches.canvas.uiColor
         return scanner
     }
 

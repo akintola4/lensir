@@ -156,19 +156,31 @@ nonisolated enum SplashLogic {
 
     // MARK: - The scanner coming in
 
-    /// The camera, its dim, the wordmark and the buttons: hidden on black
-    /// until the grow, fully in by the end.
+    /// The camera and its veil: hidden until the grow, fully in by the end.
+    /// Eased in and out over the whole grow, so in light the screen settles
+    /// from the white launch screen to the veiled camera rather than
+    /// dropping to grey in the first few frames.
     static func sceneOpacity(at t: Double, in timeline: Timeline) -> Double {
-        growCurve.value(at: progress(t - timeline.growStarts, over: timeline.grow))
+        easeInOut(progress(t - timeline.growStarts, over: timeline.grow))
     }
 
-    /// "Made by DEVAKINTOLA": in with the hunt, out in the first half of the
-    /// grow, before the scanner's own controls are more than half in.
+    /// How much of the grow the credit takes to leave.
+    static let creditExit = 0.25
+
+    /// The wordmark and the buttons. They share the bottom of the screen
+    /// with the credit, so they wait for it to go before they come in.
+    static func controlsOpacity(at t: Double, in timeline: Timeline) -> Double {
+        let wait = timeline.hunt > 0 ? timeline.grow * creditExit : 0
+        return growCurve.value(at: progress(t - timeline.growStarts - wait, over: timeline.grow - wait))
+    }
+
+    /// "Made by DEVAKINTOLA": in with the hunt, out in the first quarter of
+    /// the grow, gone before the scanner's own buttons start to come in.
     /// The quick version has no credit: it would only flicker.
     static func creditOpacity(at t: Double, in timeline: Timeline) -> Double {
         guard timeline.hunt > 0 else { return 0 }
         return min(easeInOut(progress(t, over: timeline.hunt)),
-            1 - easeInOut(progress(t - timeline.growStarts, over: timeline.grow * 0.5)))
+            1 - easeInOut(progress(t - timeline.growStarts, over: timeline.grow * creditExit)))
     }
 
     /// Reduce Motion: the credit fades in, then out again before the
@@ -223,8 +235,10 @@ nonisolated struct SplashFrame: Equatable, Sendable {
     var brackets: BracketFrame
     var stroke: CGFloat
     var bracketOpacity: Double
-    /// Camera, dim, wordmark and buttons.
+    /// Camera and dim.
     var scene: Double
+    /// Wordmark and buttons.
+    var controls: Double
     var credit: Double
     var dotCentre: CGPoint
     var dotRadius: CGFloat
@@ -241,6 +255,7 @@ nonisolated struct SplashFrame: Equatable, Sendable {
         return SplashFrame(
             brackets: frame, stroke: stroke, bracketOpacity: 1,
             scene: SplashLogic.sceneOpacity(at: t, in: timeline),
+            controls: SplashLogic.controlsOpacity(at: t, in: timeline),
             credit: SplashLogic.creditOpacity(at: t, in: timeline),
             dotCentre: CGPoint(x: frame.rect.midX, y: frame.rect.midY),
             dotRadius: SplashLogic.Mark.dotRadius * SplashLogic.dotScale(at: t, in: timeline),
@@ -257,6 +272,7 @@ nonisolated struct SplashFrame: Equatable, Sendable {
         return SplashFrame(
             brackets: ScanGeometry.lookingFrame(in: screen), stroke: SplashLogic.scannerStroke, bracketOpacity: scene,
             scene: scene,
+            controls: scene,
             credit: SplashLogic.stillCreditOpacity(at: t, in: timeline),
             dotCentre: CGPoint(x: mark.rect.midX, y: mark.rect.midY),
             dotRadius: SplashLogic.Mark.dotRadius, dotOpacity: 1 - scene,

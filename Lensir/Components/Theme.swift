@@ -34,9 +34,12 @@ nonisolated struct Swatch: Sendable, Equatable {
         return Self.rgb(high ? (darkHigh ?? dark) : dark, alpha: darkAlpha)
     }
 
-    var color: Color {
+    var color: Color { Color(uiColor: uiColor) }
+
+    /// For UIKit views: follows the appearance as it changes.
+    var uiColor: UIColor {
         let swatch = self
-        return Color(uiColor: UIColor { swatch.resolve(style: $0.userInterfaceStyle, contrast: $0.accessibilityContrast) })
+        return UIColor { swatch.resolve(style: $0.userInterfaceStyle, contrast: $0.accessibilityContrast) }
     }
 
     private static func rgb(_ hex: UInt32, alpha: CGFloat) -> UIColor {
@@ -66,16 +69,29 @@ enum Palette {
         static let chip = Swatch(dark: 0x2C2C2E, light: 0xE9E9EE)
         /// Round buttons over the camera.
         static let control = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0.16, lightAlpha: 0.92)
-        /// Their edge, so a white button holds its shape over a bright scene.
-        static let controlEdge = Swatch(dark: 0x000000, light: 0xE5E5EA, darkAlpha: 0)
-        /// The drawer's top edge where it meets the camera.
-        static let drawerEdge = Swatch(dark: 0x000000, light: 0xE5E5EA, darkAlpha: 0)
+        /// Their edge, a hairline of black, so a white button holds its shape
+        /// over a bright scene. Translucent, so it darkens whatever it's on.
+        static let controlEdge = Swatch(dark: 0x000000, light: 0x000000, darkAlpha: 0, lightAlpha: 0.12)
+        /// A soft lift under them on light; none on dark.
+        static let controlShadow = Swatch(dark: 0x000000, light: 0x000000, darkAlpha: 0, lightAlpha: 0.14)
+        /// The drawer's top edge where it meets the camera: a hairline of
+        /// black that reads on a bright scene and a dim one alike.
+        static let drawerEdge = Swatch(dark: 0x000000, light: 0x000000, darkAlpha: 0, lightAlpha: 0.08)
+        /// Behind the scanner when it sinks back under an expanded drawer:
+        /// black in both, as behind an iOS sheet.
+        static let backdrop = Swatch(dark: 0x000000, light: 0x000000)
+        /// The rule above Details: solid on dark, a tenth of black on light.
+        static let separator = Swatch(dark: 0x38383A, light: 0x000000, lightAlpha: 0.1)
+        /// A main button that can't be pressed yet.
+        static let disabledFill = Swatch(dark: 0x3A3A3C, light: 0xE5E5EA)
         /// A 1 pt edge just inside a white code tile, so it doesn't melt
         /// into a white card.
         static let tileEdge = Swatch(dark: 0x000000, light: 0x000000, darkAlpha: 0, lightAlpha: 0.1)
         /// Labels and the quiet parts of an address: 5.1:1 on white, and
         /// darker still with Increase Contrast.
-        static let secondaryText = Swatch(dark: 0x8E8E93, light: 0x6E6E73, darkHigh: 0xAEAEB2, lightHigh: 0x3C3C43)
+        /// #A1A1A6 on dark: 6.6:1 on a drawer and 5.4:1 on a field, so it
+        /// carries the same weight it does on white.
+        static let secondaryText = Swatch(dark: 0xA1A1A6, light: 0x6E6E73, darkHigh: 0xAEAEB2, lightHigh: 0x3C3C43)
         static let checkText = Swatch(dark: 0xC7C7CC, light: 0x3C3C43, lightHigh: 0x1C1C1E)
         static let warningText = Swatch(dark: 0xE5E5EA, light: 0x1C1C1E)
         /// "Made by" on the opening.
@@ -86,22 +102,43 @@ enum Palette {
         /// Keeps the wordmark and the hint readable over the scene: a soft
         /// shadow on dark, a faint white glow on light.
         static let glow = Swatch(dark: 0x000000, light: 0xFFFFFF, darkAlpha: 0.5, lightAlpha: 0.7)
-        /// The veil around the brackets: black in dark, white in light, at
-        /// the strength ScanGeometry and DrawerLogic ask for. Black is held
-        /// back so dark mode dims exactly as it did.
-        static let veil = Swatch(dark: 0x000000, light: 0xFFFFFF, darkAlpha: 0.84)
+        /// The veil around the brackets: black in dark, a light grey in
+        /// light, at the strength ScanGeometry and DrawerLogic ask for.
+        /// Black is held back so dark mode dims exactly as it did.
+        static let veil = Swatch(dark: 0x000000, light: 0xE5E5EA, darkAlpha: 0.84)
+        /// Light only, while looking: white over the window at 0.92 of the
+        /// veil's strength. 0.92 × 255 ≥ 0xEA, the veil's brightest channel,
+        /// so the window is lighter than the veil around it over any scene,
+        /// black to white: a spotlight, the way the black veil is one in
+        /// dark. Once a code is found the code's own paper is the light.
+        static let lensWash = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0, lightAlpha: 0.92)
+        /// Light only: a white rim under the black brackets, so they hold at
+        /// least 3:1 against whatever the camera sees.
+        static let bracketHalo = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0)
         static let safe = Swatch(dark: 0x34C759, light: 0x248A3D)
         static let warning = Swatch(dark: 0xFF6961, light: 0xD70015)
         /// The warning red on an ink fill (the found pill): #FF6961 is too
         /// light on white, #D70015 too dark on black.
         static let warningOnInk = Swatch(dark: 0xD70015, light: 0xFF6961)
+        /// "Open anyway": a lighter red on dark, for text at 15 pt.
+        static let warningLabel = Swatch(dark: 0xFF8780, light: 0xD70015)
+        /// A shown code and its page: black on white in either appearance,
+        /// because that's what other phones scan most reliably.
+        static let paper = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF)
+        static let paperInk = Swatch(dark: 0x000000, light: 0x000000)
+        /// Small grey text on the paper: 5.1:1 on white.
+        static let paperQuiet = Swatch(dark: 0x6E6E73, light: 0x6E6E73)
+        /// Close and Save to Photos on the paper.
+        static let paperButton = Swatch(dark: 0xE5E5EA, light: 0xE5E5EA)
 
         static let all: [String: Swatch] = [
             "ink": ink, "onInk": onInk, "canvas": canvas, "grouped": grouped, "sheet": sheet, "raised": raised,
             "chip": chip, "control": control, "controlEdge": controlEdge, "drawerEdge": drawerEdge, "tileEdge": tileEdge,
             "secondaryText": secondaryText, "checkText": checkText, "warningText": warningText, "credit": credit,
             "grabber": grabber, "hint": hint, "glow": glow, "veil": veil, "safe": safe, "warning": warning,
-            "warningOnInk": warningOnInk,
+            "warningOnInk": warningOnInk, "controlShadow": controlShadow, "backdrop": backdrop, "separator": separator,
+            "disabledFill": disabledFill, "lensWash": lensWash, "bracketHalo": bracketHalo, "warningLabel": warningLabel,
+            "paper": paper, "paperInk": paperInk, "paperQuiet": paperQuiet, "paperButton": paperButton,
         ]
     }
 
@@ -127,6 +164,17 @@ enum Palette {
     static let safe = Swatches.safe.color
     static let warning = Swatches.warning.color
     static let warningOnInk = Swatches.warningOnInk.color
+    static let controlShadow = Swatches.controlShadow.color
+    static let backdrop = Swatches.backdrop.color
+    static let separator = Swatches.separator.color
+    static let disabledFill = Swatches.disabledFill.color
+    static let lensWash = Swatches.lensWash.color
+    static let bracketHalo = Swatches.bracketHalo.color
+    static let warningLabel = Swatches.warningLabel.color
+    static let paper = Swatches.paper.color
+    static let paperInk = Swatches.paperInk.color
+    static let paperQuiet = Swatches.paperQuiet.color
+    static let paperButton = Swatches.paperButton.color
 }
 
 enum Typeface {
@@ -192,25 +240,33 @@ struct CircleIcon: View {
     /// Ink with the icon cut out: the torch while it's on.
     var filled = false
     var background: Color = Palette.control
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
+        // Over the camera: a hairline edge and a soft lift on light, so a
+        // white button holds its shape over a white wall. Nothing on dark.
+        let overCamera = !filled && background == Palette.control
         Image(systemName: systemName)
             .font(.system(size: diameter > 48 ? 21 : 17, weight: .semibold))
             .foregroundStyle(filled ? Palette.onInk : Palette.ink)
             .frame(width: diameter, height: diameter)
-            .background(Circle().fill(filled ? Palette.ink : background))
-            .overlay(Circle().strokeBorder(filled || background != Palette.control ? .clear : Palette.controlEdge, lineWidth: 0.8))
+            .background(
+                Circle().fill(filled ? Palette.ink : background)
+                    .shadow(color: overCamera ? Palette.controlShadow : .clear, radius: 3, y: 1)
+            )
+            .overlay(Circle().strokeBorder(overCamera ? Palette.controlEdge : .clear, lineWidth: 1 / displayScale))
             .contentShape(Circle())
     }
 }
 
 extension View {
-    /// The full-width main button in a sheet, filled with ink.
-    func primaryButtonStyle() -> some View {
+    /// The full-width main button in a sheet, filled with ink, or grey
+    /// while it can't be pressed yet.
+    func primaryButtonStyle(enabled: Bool = true) -> some View {
         font(Typeface.primaryButton)
-            .foregroundStyle(Palette.onInk)
+            .foregroundStyle(enabled ? Palette.onInk : Palette.secondaryText)
             .frame(maxWidth: .infinity, minHeight: 50)
-            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Palette.ink))
+            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(enabled ? Palette.ink : Palette.disabledFill))
             .contentShape(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous))
     }
 }

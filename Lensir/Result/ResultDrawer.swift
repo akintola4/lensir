@@ -36,7 +36,10 @@ struct ResultDrawer: View {
     @State private var wifiStatus: WiFiStatus?
     /// Grabber plus header: always a drag handle, pinned above the scroll.
     @State private var handleHeight: CGFloat = 0
-    @State private var handleFrame: CGRect = .zero
+    /// Where the handle is on screen, to tell where a drag started. Kept in
+    /// a reference rather than state: it changes on every frame the drawer
+    /// moves, and nothing drawn depends on it.
+    @State private var handle = HandleFrame()
     @State private var compactBodyHeight: CGFloat = 0
     @State private var scrollContentHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -47,6 +50,7 @@ struct ResultDrawer: View {
     /// moves with the finger, so a drag that starts on a button also ends
     /// on it; this keeps that release from counting as a tap.
     @State private var suppressTaps = false
+    @AccessibilityFocusState private var titleFocused: Bool
 
     private var summary: ResultSummary { result.summary }
     private var compactHeight: CGFloat { handleHeight + compactBodyHeight }
@@ -66,10 +70,8 @@ struct ResultDrawer: View {
                     .padding(.top, 2)
                     .padding(.bottom, 14)
             }
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
-                handleFrame = $0
-                handleHeight = $0.height
-            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { handleHeight = $0 }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { handle.frame = $0 }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     compactBody
@@ -110,6 +112,9 @@ struct ResultDrawer: View {
             if drawer.snap != .expanded { scrollPosition.scrollTo(edge: .top) }
         }
         .accessibilityElement(children: .contain)
+        // VoiceOver stays in the drawer while it's open, and starts on its title.
+        .accessibilityAddTraits(.isModal)
+        .onAppear { titleFocused = true }
         .accessibilityAction(.escape) { onClose(0) }
         .accessibilityAction(named: "Close") { onClose(0) }
         .sensoryFeedback(trigger: copyCount) { _, _ in HapticLogic.feedback(for: .copied, hapticsOn: haptics) }
@@ -155,7 +160,7 @@ struct ResultDrawer: View {
         DragGesture(minimumDistance: DrawerLogic.dragThreshold, coordinateSpace: .global)
             .onChanged { value in
                 if dragState.owner == nil {
-                    dragStartsInHandle = handleFrame.contains(value.startLocation)
+                    dragStartsInHandle = handle.frame.contains(value.startLocation)
                 }
                 let before = dragState.owner
                 dragState = DrawerLogic.track(dragState, translation: value.translation, startsInHandle: dragStartsInHandle,
@@ -209,6 +214,7 @@ struct ResultDrawer: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+            .accessibilityFocused($titleFocused)
 
             ShareLink(item: summary.shareText) {
                 CircleIcon(systemName: "square.and.arrow.up", background: Palette.raised)
@@ -244,28 +250,10 @@ struct ResultDrawer: View {
                 checks(report)
             }
         case .wifi(let wifi):
-            DetailRow(label: "Password", value: wifi.password ?? "None needed", monospaced: wifi.password != nil)
-            DetailRow(label: "Security", value: wifi.security.label)
+            fieldRows(ResultDetails.compactFields(for: result.payload))
             if let wifiStatus { wifiStatusLine(wifiStatus, ssid: wifi.ssid) }
-        case .contact(let contact):
-            ForEach(Array(contact.phones.prefix(2).enumerated()), id: \.offset) { _, phone in
-                DetailRow(label: "Phone", value: phone, monospaced: true)
-            }
-            ForEach(Array(contact.emails.prefix(2).enumerated()), id: \.offset) { _, email in
-                DetailRow(label: "Email", value: email, monospaced: true)
-            }
-            let work = [contact.jobTitle, contact.organization].filter { !$0.isEmpty }.joined(separator: ", ")
-            if !work.isEmpty, work != contact.displayName { DetailRow(label: "Work", value: work) }
-            if !contact.address.isEmpty { DetailRow(label: "Address", value: contact.address) }
-        case .phone:
-            EmptyView()
-        case .sms(_, let body):
-            if !body.isEmpty { DetailRow(label: "Message", value: body) }
-        case .email(_, let subject, let body):
-            if !subject.isEmpty { DetailRow(label: "Subject", value: subject) }
-            if !body.isEmpty { DetailRow(label: "Message", value: body) }
-        case .location(let location):
-            if location.query != nil { DetailRow(label: "Coordinates", value: location.coordinates, monospaced: true) }
+        case .contact, .phone, .sms, .email, .location:
+            fieldRows(ResultDetails.compactFields(for: result.payload))
         case .text(let text):
             if text != summary.title {
                 ScrollView {
@@ -292,6 +280,12 @@ struct ResultDrawer: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Warning. " + report.findings.map(\.message).joined(separator: " "))
+        }
+    }
+
+    private func fieldRows(_ fields: [DetailField]) -> some View {
+        ForEach(Array(fields.enumerated()), id: \.offset) { _, field in
+            DetailRow(label: field.label, value: field.value, monospaced: field.monospaced)
         }
     }
 
@@ -323,15 +317,7 @@ struct ResultDrawer: View {
                 .foregroundStyle(.white)
                 .accessibilityAddTraits(.isHeader)
 
-            if case .link(let link) = result.payload, let report = summary.safety {
-                VStack(alignment: .leading, spacing: 6) {
-                    FieldLabel("Full address")
-                    Text(AddressText.full(link, report: report))
-                        .font(Typeface.address)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
+            if let report = summary.safety {
                 VStack(alignment: .leading, spacing: 10) {
                     FieldLabel("Checks")
                     ForEach(Array(ResultDetails.checks(for: report).enumerated()), id: \.offset) { _, check in
@@ -339,9 +325,7 @@ struct ResultDrawer: View {
                     }
                 }
             } else {
-                ForEach(Array(ResultDetails.fields(for: result.payload).enumerated()), id: \.offset) { _, field in
-                    DetailRow(label: field.label, value: field.value, monospaced: field.monospaced)
-                }
+                fieldRows(ResultDetails.moreFields(for: result.payload))
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -369,7 +353,7 @@ struct ResultDrawer: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.raised))
+                    .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Palette.raised))
             }
 
             DetailRow(label: "Scanned", value: scannedLine)
@@ -481,6 +465,7 @@ struct ResultDrawer: View {
     private func copy(_ text: String, for action: ResultAction?) {
         UIPasteboard.general.string = text
         copyCount += 1
+        AccessibilityNotification.Announcement("Copied").post()
         copiedTask?.cancel()
         withAnimation(Motion.fade) {
             copied = action
@@ -523,13 +508,15 @@ struct CheckLine: View {
     var color: Color
     var text: String
     var textColor: Color
+    /// 16 pt at the default size; grows with the text.
+    @ScaledMetric(relativeTo: .footnote) private var iconWidth: CGFloat = 16
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
             Image(systemName: systemName)
-                .font(.system(size: 13, weight: .bold))
+                .font(.footnote.weight(.bold))
                 .foregroundStyle(color)
-                .frame(width: 16)
+                .frame(width: iconWidth)
                 .accessibilityHidden(true)
             Text(text)
                 .font(Typeface.check)
@@ -543,13 +530,14 @@ struct CheckLine: View {
 /// it didn't.
 struct CheckRow: View {
     var check: CheckItem
+    @ScaledMetric(relativeTo: .footnote) private var iconWidth: CGFloat = 16
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: check.passed ? "checkmark" : "xmark")
-                .font(.system(size: 12, weight: .bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(check.passed ? Palette.safe : Palette.warning)
-                .frame(width: 16)
+                .frame(width: iconWidth)
             Text(check.title)
                 .font(Typeface.check)
                 .foregroundStyle(check.passed ? Palette.checkText : Palette.warningText)
@@ -593,4 +581,10 @@ struct DetailRow: View {
         }
         .accessibilityElement(children: .combine)
     }
+}
+
+/// The drawer handle's frame on screen. A plain reference, so writing it as
+/// the drawer moves doesn't redraw anything.
+final class HandleFrame {
+    var frame: CGRect = .zero
 }

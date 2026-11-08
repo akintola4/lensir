@@ -21,7 +21,7 @@ nonisolated enum ResultAction: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .openLink: "Open in Safari"
+        case .openLink: "Open link"
         case .openAnyway: "Open anyway"
         case .copyLink: "Copy link"
         case .joinWiFi: "Join Wi-Fi"
@@ -147,7 +147,7 @@ nonisolated enum ResultLogic {
     }
 }
 
-/// The system links each action opens: Phone, Messages, Mail, Maps, Safari.
+/// The system links each action opens: Phone, Messages, Mail, Maps, the browser.
 nonisolated enum ResultLinks {
     static func web(_ link: String) -> URL? {
         URL(string: link) ?? URL(string: link, encodingInvalidCharacters: true)

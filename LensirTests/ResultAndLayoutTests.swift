@@ -17,7 +17,7 @@ private func summary(_ raw: String, canJoinWiFi: Bool = true, symbology: String?
 
 @Suite("Result sheet")
 struct ResultSummaryTests {
-    @Test func safeLinkOpensInSafari() {
+    @Test func safeLinkOpens() {
         let result = summary("https://paystack.com/pay/kola-logistics")
         #expect(result.title == "paystack.com")
         #expect(result.titleIsMonospaced)
@@ -98,7 +98,7 @@ struct ResultSummaryTests {
     }
 
     @Test func actionTitles() {
-        #expect(ResultAction.openLink.title == "Open in Safari")
+        #expect(ResultAction.openLink.title == "Open link")
         #expect(ResultAction.copyLink.isCopy)
         #expect(!ResultAction.openAnyway.isCopy)
     }

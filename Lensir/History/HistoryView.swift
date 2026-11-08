@@ -83,19 +83,25 @@ struct HistoryView: View {
 
 struct HistoryRow: View {
     var record: ScanRecord
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// 28 pt at the default size; grows with the text.
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth: CGFloat = 28
 
     var body: some View {
         let summary = ResultLogic.summary(for: PayloadParser.parse(record.raw), raw: record.raw, symbology: record.symbology, canJoinWiFi: WiFiJoiner.isAvailable)
         HStack(spacing: 12) {
-            Image(systemName: summary.isWarning ? "exclamationmark.triangle" : symbol(summary.pillIcon))
-                .font(.system(size: 15, weight: .semibold))
+            Image(systemName: HistoryLogic.symbol(for: summary, symbology: record.symbology))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(summary.isWarning ? Palette.warning : Palette.secondaryText)
-                .frame(width: 28)
-                .accessibilityLabel(summary.isWarning ? "Warning" : "")
+                .frame(width: iconWidth)
+                .accessibilityLabel("Warning")
+                .accessibilityHidden(!summary.isWarning)
             VStack(alignment: .leading, spacing: 2) {
+                // One line, cut in the middle; at the accessibility sizes the
+                // whole title, so a lookalike letter is never cut away.
                 ResultDrawer.title(summary)
                     .foregroundStyle(.white)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.middle)
                 Text("\(summary.kindLabel) · \(record.date.formatted(date: .omitted, time: .shortened))")
                     .font(Typeface.kindLabel)
@@ -107,21 +113,6 @@ struct HistoryRow: View {
         .frame(minHeight: 48)
         .contentShape(Rectangle())
     }
-
-    private func symbol(_ icon: ResultSummary.PillIcon) -> String {
-        switch icon {
-        case .lock: "lock"
-        case .wifi: "wifi"
-        case .person: "person"
-        case .phone: "phone"
-        case .message: "message"
-        case .envelope: "envelope"
-        case .pin: "mappin"
-        case .text: "text.alignleft"
-        case .warning: "exclamationmark.triangle"
-        case .none: "link"
-        }
-    }
 }
 
 struct SettingsView: View {
@@ -132,7 +123,7 @@ struct SettingsView: View {
             Section {
                 Toggle("Haptics", isOn: $settings.haptics)
             } footer: {
-                Text("A light tap when a code is found and when something is copied.")
+                Text("Taps when a code is found, warns on a risky one, and ticks as the drawer settles or something is copied.")
             }
             Section("Privacy") {
                 Text("Lensir has no network code. Codes, photos and history never leave this phone, and links only open when you tap Open.")

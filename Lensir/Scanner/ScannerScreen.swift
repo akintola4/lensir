@@ -39,6 +39,9 @@ struct ScannerScreen: View {
     private var stillTimeline: SplashLogic.StillTimeline {
         quickSplash ? .quick : SplashLogic.StillTimeline()
     }
+    /// A code picked from a photo's list, opened once the list has gone.
+    @State private var pendingPhotoCode: PhotoCode?
+    @AccessibilityFocusState private var focus: ScannerFocus?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -91,7 +94,11 @@ struct ScannerScreen: View {
             drawer.reduceMotion = reduceMotion
         }
         .onChange(of: model.result?.id) {
-            guard model.result != nil else { return }
+            guard model.result != nil else {
+                // The drawer's gone: VoiceOver lands back on the scanner.
+                focus = ScannerFocusLogic.afterDrawerCloses(hint: hintText)
+                return
+            }
             let expands = LaunchOptions.demo?.expandsDrawer ?? false
             drawer.present(expands ? .expanded : .compact, animated: !(LaunchOptions.demo?.opensSheet ?? false))
             saveToHistory()
@@ -120,14 +127,11 @@ struct ScannerScreen: View {
                 showingHistory = false
             }
         }
-        .sheet(isPresented: Binding(get: { !model.photoCodes.isEmpty }, set: { if !$0 { model.photoCodes = [] } })) {
+        .sheet(isPresented: Binding(get: { !model.photoCodes.isEmpty }, set: { if !$0 { model.photoCodes = [] } }),
+               onDismiss: openPendingPhotoCode) {
             PhotoCodesSheet(codes: model.photoCodes) { code in
+                pendingPhotoCode = code
                 model.photoCodes = []
-                Task {
-                    // Let the list slide away before the result grows in.
-                    try? await Task.sleep(for: .milliseconds(350))
-                    model.open(raw: code.raw, symbology: code.symbology, source: .photo)
-                }
             }
         }
     }
@@ -199,6 +203,7 @@ struct ScannerScreen: View {
                     .font(Typeface.wordmark)
                     .tracking(-0.34)
                     .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 6)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if cameraIsLive && (CameraAccess.hasTorch || model.camera == .demo) {
@@ -223,6 +228,7 @@ struct ScannerScreen: View {
                     }
                     .buttonStyle(PressableStyle())
                     .accessibilityLabel("Scan a photo")
+                    .accessibilityFocused($focus, equals: .photoButton)
                     Spacer()
                     Button { showingHistory = true } label: {
                         CircleIcon(systemName: "clock.arrow.circlepath", diameter: 52)
@@ -239,14 +245,21 @@ struct ScannerScreen: View {
         .padding(.trailing, Metrics.edge + safe.trailing)
     }
 
+    private var hintText: String? {
+        ScannerFocusLogic.hintText(notice: model.notice, cameraIsLive: cameraIsLive, codeInView: model.detection != nil)
+    }
+
     @ViewBuilder private var hint: some View {
-        let text = model.notice ?? (cameraIsLive && model.detection == nil ? "Point at a QR code" : nil)
+        let text = hintText
         Text(text ?? " ")
             .font(Typeface.hint)
             .foregroundStyle(Palette.hint)
+            // Keeps it readable over a bright scene, where the dim alone doesn't.
+            .shadow(color: .black.opacity(0.5), radius: 6)
             .opacity(text == nil ? 0 : 1)
             .animation(Motion.fade, value: text)
             .accessibilityHidden(text == nil)
+            .accessibilityFocused($focus, equals: .hint)
     }
 
     @ViewBuilder private func pill(size: CGSize) -> some View {
@@ -441,6 +454,12 @@ struct ScannerScreen: View {
         }
     }
 
+    private func openPendingPhotoCode() {
+        guard let code = pendingPhotoCode else { return }
+        pendingPhotoCode = nil
+        model.open(raw: code.raw, symbology: code.symbology, source: .photo)
+    }
+
     private func openPendingRecord() {
         guard let record = pendingHistoryRecord else { return }
         pendingHistoryRecord = nil
@@ -494,7 +513,8 @@ struct CameraMessageView: View {
                 button
                     .padding(.top, 16)
             }
-            .padding(.horizontal, 32)
+            // On the same edge as the wordmark and the buttons.
+            .padding(.horizontal, Metrics.edge)
             Spacer()
             Spacer()
         }

@@ -18,6 +18,24 @@ nonisolated struct HistorySection<Item>: Identifiable {
 }
 
 nonisolated enum HistoryLogic {
+    /// The SF Symbol at the start of a row: the warning for a risky link,
+    /// a barcode for text read off a barcode, otherwise the code's kind.
+    static func symbol(for summary: ResultSummary, symbology: String) -> String {
+        if summary.isWarning { return "exclamationmark.triangle" }
+        switch summary.pillIcon {
+        case .lock: return "lock"
+        case .wifi: return "wifi"
+        case .person: return "person"
+        case .phone: return "phone"
+        case .message: return "message"
+        case .envelope: return "envelope"
+        case .pin: return "mappin"
+        case .text: return symbology == "QR" ? "text.alignleft" : "barcode"
+        case .warning: return "exclamationmark.triangle"
+        case .none: return "link"
+        }
+    }
+
     static func sections<Item>(_ items: [Item], date: (Item) -> Date, now: Date = .now,
                                calendar: Calendar = .current, locale: Locale = .current) -> [HistorySection<Item>] {
         let sorted = items.sorted { date($0) > date($1) }

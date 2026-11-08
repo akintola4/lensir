@@ -2,8 +2,9 @@
 //  ResultDetails.swift
 //  Lensir
 //
-//  What the expanded drawer lists under "Details": every field the code
-//  carried, and for links, each check as its own pass or fail row.
+//  The rows the drawer lists: a few under the title in compact, and under
+//  "Details" only what compact doesn't already show, plus, for links, each
+//  check as its own pass or fail row.
 //
 
 import Foundation
@@ -20,50 +21,62 @@ nonisolated struct CheckItem: Equatable, Sendable {
 }
 
 nonisolated enum ResultDetails {
-    /// Every parsed field, in the order you'd read them off the code.
-    static func fields(for payload: Payload) -> [DetailField] {
+    /// The rows under the title in the compact drawer. The title itself (a
+    /// network's name, a person's, a number) is never repeated here.
+    static func compactFields(for payload: Payload) -> [DetailField] {
         switch payload {
-        case .link:
+        case .link, .phone, .text:
             return []
         case .wifi(let wifi):
             return [
-                DetailField(label: "Network", value: wifi.ssid, monospaced: true),
                 DetailField(label: "Password", value: wifi.password ?? "None needed", monospaced: wifi.password != nil),
                 DetailField(label: "Security", value: wifi.security.label),
-                DetailField(label: "Hidden network", value: wifi.hidden ? "Yes" : "No"),
             ]
         case .contact(let contact):
-            var fields = [DetailField(label: "Name", value: contact.displayName)]
-            if !contact.jobTitle.isEmpty { fields.append(DetailField(label: "Job title", value: contact.jobTitle)) }
-            if !contact.organization.isEmpty { fields.append(DetailField(label: "Company", value: contact.organization)) }
-            fields += contact.phones.map { DetailField(label: "Phone", value: $0, monospaced: true) }
-            fields += contact.emails.map { DetailField(label: "Email", value: $0, monospaced: true) }
-            fields += contact.urls.map { DetailField(label: "Website", value: $0, monospaced: true) }
+            var fields = contact.phones.prefix(2).map { DetailField(label: "Phone", value: $0, monospaced: true) }
+            fields += contact.emails.prefix(2).map { DetailField(label: "Email", value: $0, monospaced: true) }
+            if let work = work(contact), work != contact.displayName { fields.append(DetailField(label: "Work", value: work)) }
             if !contact.address.isEmpty { fields.append(DetailField(label: "Address", value: contact.address)) }
-            if !contact.note.isEmpty { fields.append(DetailField(label: "Note", value: contact.note)) }
             return fields
-        case .phone(let number):
-            return [DetailField(label: "Number", value: number, monospaced: true)]
-        case .sms(let number, let body):
-            var fields = [DetailField(label: "To", value: number.isEmpty ? "Not given" : number, monospaced: !number.isEmpty)]
-            if !body.isEmpty { fields.append(DetailField(label: "Message", value: body)) }
-            return fields
-        case .email(let address, let subject, let body):
-            var fields = [DetailField(label: "To", value: address.isEmpty ? "Not given" : address, monospaced: !address.isEmpty)]
+        case .sms(_, let body):
+            return body.isEmpty ? [] : [DetailField(label: "Message", value: body)]
+        case .email(_, let subject, let body):
+            var fields: [DetailField] = []
             if !subject.isEmpty { fields.append(DetailField(label: "Subject", value: subject)) }
             if !body.isEmpty { fields.append(DetailField(label: "Message", value: body)) }
             return fields
         case .location(let location):
-            let posix = Locale(identifier: "en_US_POSIX")
-            var fields = [
-                DetailField(label: "Latitude", value: String(format: "%.6f", locale: posix, location.latitude), monospaced: true),
-                DetailField(label: "Longitude", value: String(format: "%.6f", locale: posix, location.longitude), monospaced: true),
-            ]
-            if let query = location.query { fields.append(DetailField(label: "Label", value: query)) }
+            return location.query == nil ? [] : [DetailField(label: "Coordinates", value: location.coordinates, monospaced: true)]
+        }
+    }
+
+    /// What Details adds under the compact drawer: only what the title and
+    /// the compact rows don't already say.
+    static func moreFields(for payload: Payload) -> [DetailField] {
+        switch payload {
+        case .link, .wifi, .phone, .location:
+            // A hidden network says so in its label; coordinates and labels
+            // are the title or a compact row already.
+            return []
+        case .contact(let contact):
+            var fields = contact.phones.dropFirst(2).map { DetailField(label: "Phone", value: $0, monospaced: true) }
+            fields += contact.emails.dropFirst(2).map { DetailField(label: "Email", value: $0, monospaced: true) }
+            fields += contact.urls.map { DetailField(label: "Website", value: $0, monospaced: true) }
+            if !contact.note.isEmpty { fields.append(DetailField(label: "Note", value: contact.note)) }
             return fields
+        case .sms(let number, _):
+            return number.isEmpty ? [DetailField(label: "To", value: "Not given")] : []
+        case .email(let address, _, _):
+            return address.isEmpty ? [DetailField(label: "To", value: "Not given")] : []
         case .text(let text):
             return [DetailField(label: "Length", value: text.count == 1 ? "1 character" : "\(text.count) characters")]
         }
+    }
+
+    /// A job title and a company on one line.
+    private static func work(_ contact: Contact) -> String? {
+        let work = [contact.jobTitle, contact.organization].filter { !$0.isEmpty }.joined(separator: ", ")
+        return work.isEmpty ? nil : work
     }
 
     /// One row per check, passed or not. Scripts and data pages get a single

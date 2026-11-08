@@ -66,7 +66,7 @@ final class DrawerState {
         let to = DrawerLogic.height(of: target, compact: compactHeight, expanded: expandedHeight)
         let animation: Animation = reduceMotion
             ? .easeInOut(duration: 0.25)
-            : .interpolatingSpring(duration: 0.4, bounce: 0, initialVelocity: DrawerLogic.relativeVelocity(velocity, from: height, to: to))
+            : .interpolatingSpring(duration: DrawerLogic.springDuration(to: target), bounce: 0, initialVelocity: DrawerLogic.relativeVelocity(velocity, from: height, to: to))
         withAnimation(animation, completionCriteria: .logicallyComplete) {
             height = to
         } completion: {

@@ -15,13 +15,24 @@ enum Palette {
     static let sheet = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
     static let raised = Color(red: 0x2C / 255, green: 0x2C / 255, blue: 0x2E / 255)
     static let control = Color.white.opacity(0.16)
-    static let secondaryText = Color(red: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255)
+    /// Labels and the quiet parts of an address. With Increase Contrast on
+    /// it brightens from #8E8E93 to #AEAEB2.
+    static let secondaryText = Color(UIColor { secondaryText(contrast: $0.accessibilityContrast) })
     static let checkText = Color(red: 0xC7 / 255, green: 0xC7 / 255, blue: 0xCC / 255)
     static let warningText = Color(red: 0xE5 / 255, green: 0xE5 / 255, blue: 0xEA / 255)
-    static let grabber = Color(red: 0x48 / 255, green: 0x48 / 255, blue: 0x4A / 255)
+    static let grabber = Color(red: 0x63 / 255, green: 0x63 / 255, blue: 0x66 / 255)
     static let hint = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
     static let safe = Color(red: 0x34 / 255, green: 0xC7 / 255, blue: 0x59 / 255)
     static let warning = Color(red: 0xFF / 255, green: 0x69 / 255, blue: 0x61 / 255)
+    /// The warning red on white (the found pill): #FF6961 is too light there.
+    static let warningOnLight = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
+
+    /// UIKit asks for this on whatever thread draws, so it touches nothing else.
+    nonisolated static func secondaryText(contrast: UIAccessibilityContrast) -> UIColor {
+        contrast == .high
+            ? UIColor(red: 0xAE / 255, green: 0xAE / 255, blue: 0xB2 / 255, alpha: 1)
+            : UIColor(red: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255, alpha: 1)
+    }
 }
 
 enum Typeface {

@@ -14,15 +14,15 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 
 | Looking | Found | A safe link |
 |---|---|---|
-| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The drawer for paystack.com: the full address, "Secure · the real paystack.com" and an Open in Safari button](docs/screenshots/safe-link.png) |
+| ![Four white corner brackets over the camera, waiting for a code](docs/screenshots/looking.png) | ![The brackets snapped onto a QR code, with a white pill reading paystack.com under it](docs/screenshots/found.png) | ![The drawer for paystack.com: the full address, "Secure · the real paystack.com" and an Open link button](docs/screenshots/safe-link.png) |
 
 | A safe link, expanded | A lookalike | A lookalike, expanded |
 |---|---|---|
-| ![The drawer pulled up: Details with the full address and every check passed](docs/screenshots/safe-expanded.png) | ![Red brackets and a drawer saying the underlined "а" is a Cyrillic letter, so this is not paystack.com](docs/screenshots/lookalike.png) | ![Details for the lookalike: "The real site" and "Plain letters" crossed out in red](docs/screenshots/lookalike-expanded.png) |
+| ![The drawer pulled up: Details with every check passed and the scanned text](docs/screenshots/safe-expanded.png) | ![Red brackets and a drawer saying the underlined "а" is a Cyrillic letter, so this is not paystack.com](docs/screenshots/lookalike.png) | ![Details for the lookalike: "The real site" and "Plain letters" crossed out in red](docs/screenshots/lookalike-expanded.png) |
 
 | A short link over http | Wi-Fi | Wi-Fi, expanded |
 |---|---|---|
-| ![A bit.ly link: not secure, and a link shortener that hides where it goes](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) | ![Every field of the Wi-Fi code, the raw text and a Scan again button](docs/screenshots/wifi-expanded.png) |
+| ![A bit.ly link: not secure, and a link shortener that hides where it goes](docs/screenshots/short-link.png) | ![A Wi-Fi code: network name, password, security and a Copy password button](docs/screenshots/wifi.png) | ![Details for the Wi-Fi code: the raw text and a Scan again button](docs/screenshots/wifi-expanded.png) |
 
 | Contact | Several codes in one photo | History |
 |---|---|---|
@@ -37,11 +37,11 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 ## What it does
 
 - The camera fills the screen. Four white corner brackets wait in the middle with the rest dimmed. When a code turns up they snap onto it in about 200 ms with a light tap, and a white pill under the code names what it is: the site for a link, the network for Wi-Fi, the person for a contact card.
-- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). You can drag it from anywhere, not only the grabber. It follows your finger, and when you let go it settles where the throw would carry it. If Details are scrolled down, dragging down scrolls them back to the top first, then pulls the drawer down in the same movement. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, every field in the code, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
+- Tap the pill and a drawer slides up from the bottom edge with the whole thing: the full address, the Wi-Fi password, the phone number. It works like the [shadcn/ui Drawer](https://ui.shadcn.com/docs/components/drawer). You can drag it from anywhere, not only the grabber. It follows your finger, and when you let go it settles where the throw would carry it. If Details are scrolled down, dragging down scrolls them back to the top first, then pulls the drawer down in the same movement. A quick flick down puts it away and the camera starts again. Pull it up, or tap the grabber, and a Details section shows every check as a pass or fail row, any field the compact drawer left out, the raw text with a copy button, when you scanned it, and Scan again. While it's up, the camera behind it dims and sinks back a little. Each kind of code has its own main button:
 
   | Code | Main button | Second button |
   |---|---|---|
-  | Link | Open in Safari | Copy link |
+  | Link | Open link | Copy link |
   | Risky link | Copy link | Open anyway (red) |
   | Wi-Fi | Copy password (Join Wi-Fi with a paid account, see below) | Copy network name |
   | Contact (MECARD or vCard) | Save contact | Copy details |
@@ -68,7 +68,7 @@ Each of these opens Lensir on the camera. If you left a result, History or the p
 
 <img src="docs/screenshots/widgets/lock.png" width="300" alt="The Lock Screen with Lensir's round widget, the brackets and dot, and the wide one that says Scan a code">
 
-If one of these starts Lensir from cold, you only see the end of the opening animation. The brackets grow from the launch mark into the viewfinder in 0.3 s and the camera fades in behind them. The hunt, the lock and its tap, and the credit are skipped. The camera needs about 0.3 s to start anyway, so this doesn't hold you up. If Lensir was already open, it goes straight to the camera.
+If one of these starts Lensir from cold, you only see the end of the opening animation. The brackets grow from the launch mark into the viewfinder in 0.5 s and the camera fades in behind them. The hunt, the lock and its tap, and the credit are skipped. The camera starts up behind it, so it barely holds you up. If Lensir was already open, it goes straight to the camera.
 
 The widget opens `lensir://scan`. The control, the Action Button and Siri run `OpenScannerIntent`. Both go through the same code in the app.
 
@@ -98,7 +98,7 @@ The checks only read the address. They can't tell whether a site you've never he
 
 ## Offline and private
 
-- There's no networking code in the app. It never sends a code, a photo or your history anywhere. Links only leave the phone when you press Open and Safari takes over.
+- There's no networking code in the app. It never sends a code, a photo or your history anywhere. Links only leave the phone when you press Open and your browser takes over.
 - Photos are read with Vision on the phone. Lensir only sees the photo you pick; it doesn't ask for your library.
 - History is stored with SwiftData in the app's own container. Delete the app and it's gone.
 - The camera permission is only used to read codes.
@@ -161,12 +161,12 @@ There are 166 tests in `LensirTests` (two of them only draw the widget screensho
 - the links handed to Phone, Messages, Mail and Maps
 - reading three codes out of one photo with Vision, in order
 - the drawer: following the finger, the rubber band above the top, which point a release snaps to (by position and by how fast it was thrown), the spring picking up the release speed, and the dim and background scale that follow its height
-- what Details lists: a pass or fail row per check, and every field for each kind of code
+- what the drawer lists: a pass or fail row per check, a few fields in compact, and only the rest under Details
 - the opening animation: phases in order inside 0.76 s, a first frame the same size and place as the launch image, the hunt, the lock's one small overshoot, an end state exactly equal to the scanner's brackets, the credit coming and going without popping, and the Reduce Motion path
-- `lensir://scan`: which links it reads and which it ignores, the URL scheme in the Info.plist, the intent and the link landing in the same inbox, what the link closes, and the 0.3 s opening it plays on a cold launch (starts on the launch mark, ends on the scanner's brackets, no credit)
+- `lensir://scan`: which links it reads and which it ignores, the URL scheme in the Info.plist, the intent and the link landing in the same inbox, what the link closes, and the 0.5 s opening it plays on a cold launch (starts on the launch mark, ends on the scanner's brackets, no credit)
 - who gets a drag on the drawer: the drawer, the scroll view, or nobody for a sideways drag, including the hand-over when scrolled Details reach the top
 
-`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled, by the header, up from the content, a flick to close, and a drag that starts on Open in Safari, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
+`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled (on a long link, so Details scroll), by the header, up from the content, a flick to close, and a drag that starts on Open link, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -174,7 +174,7 @@ Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
 A few are in the scheme, switched off. Turn them on under Product › Scheme › Edit Scheme › Run › Arguments, or pass them to `xcrun simctl launch`.
 
-- `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded` and `contact-expanded` open it pulled all the way up.
+- `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded`, `contact-expanded` and `long-expanded` (a long payment link whose Details scroll) open it pulled all the way up.
 - `-LensirDemo drawer-tour` plays the drawer through by itself, since you can't drag in the Simulator: the brackets snap, the drawer rises, expands, settles back and is flicked away. It's how the recording in `~/Movies/Lensir drawer/` was made.
 - `-LensirOpenHistory` opens History on launch, filled with demo scans. Add `-LensirEmptyHistory` to see it empty.
 - `-LensirNoSplash` skips the opening animation, for screenshots.

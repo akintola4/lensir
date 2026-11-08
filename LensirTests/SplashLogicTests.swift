@@ -164,7 +164,8 @@ struct SplashLogicTests {
         #expect(first.stillMark == SplashLogic.markFrame(screen: screen))
         #expect(first.stillMarkOpacity == 1 && first.scene == 0)
         let held = SplashFrame.still(at: still.hold, in: still, screen: screen)
-        #expect(held.stillMark == first.stillMark && held.credit == 1)
+        // The credit has already gone by the time the scanner starts to fade in.
+        #expect(held.stillMark == first.stillMark && held.credit < 1e-9)
         let last = SplashFrame.still(at: still.total, in: still, screen: screen)
         #expect(last.scene == 1 && last.stillMarkOpacity == 0 && last.credit < 1e-9)
         // The scanner's brackets never move: they only fade in where they live.

@@ -138,8 +138,9 @@ struct QuickSplashTests {
     private let screen = CGSize(width: 402, height: 874)
     private let quick = SplashLogic.Timeline.quick
 
-    @Test func isShorterThanHalfTheFullOne() {
-        #expect(quick.total <= SplashLogic.Timeline().total / 2)
+    @Test func isHalfASecondAndShorterThanTheFullOne() {
+        #expect(quick.total == 0.5)
+        #expect(quick.total < SplashLogic.Timeline().total)
         #expect(!quick.hasLock)
         #expect(SplashLogic.Timeline().hasLock)
     }

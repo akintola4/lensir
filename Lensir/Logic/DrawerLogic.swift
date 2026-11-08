@@ -55,6 +55,12 @@ nonisolated enum DrawerLogic {
         return points.min { abs($0.1 - projected) < abs($1.1 - projected) }!.0
     }
 
+    /// The spring's length: 0.4 s to rise or change height, 0.3 s to close,
+    /// since leaving shouldn't take as long as arriving.
+    static func springDuration(to snap: DrawerSnap) -> Double {
+        snap == .dismissed ? 0.3 : 0.4
+    }
+
     static func height(of snap: DrawerSnap, compact: CGFloat, expanded: CGFloat) -> CGFloat {
         switch snap {
         case .dismissed: 0

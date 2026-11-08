@@ -18,6 +18,9 @@ enum DemoScene: String {
     case riskyExpanded = "risky-expanded"
     case wifiExpanded = "wifi-expanded"
     case contactExpanded = "contact-expanded"
+    /// A long payment link, expanded: Details run past the screen and
+    /// scroll, for the drawer's scroll-handoff tests.
+    case longExpanded = "long-expanded"
     /// Plays through the drawer by itself, for recording: the brackets snap,
     /// the drawer rises, expands, settles back and is flicked away.
     case drawerTour = "drawer-tour"
@@ -31,6 +34,12 @@ enum DemoScene: String {
         case .http: "http://bit.ly/3kQ9xZp"
         case .wifi, .wifiExpanded: "WIFI:T:WPA;S:Kola Logistics;P:jollof-2026;;"
         case .contact, .contactExpanded: "MECARD:N:Okafor,Ada;TEL:+2348031234567;EMAIL:ada@kolalogistics.ng;ORG:Kola Logistics;URL:https://kolalogistics.ng;ADR:12 Allen Ave\\, Ikeja\\, Lagos;;"
+        case .longExpanded:
+            "https://paystack.com/pay/kola-logistics?invoice=INV-2026-11-0417&customer=ada.okafor%40kolalogistics.ng"
+                + "&amount=125000&currency=NGN&due=2026-11-30&utm_source=printed-invoice&utm_medium=qr"
+                + "&utm_campaign=november-statements&utm_content=footer-code&reference=KL-7f3c2a91b8e44d0c9a6e1f5b2d8c4a07"
+                + "&callback=https%3A%2F%2Fkolalogistics.ng%2Fpayments%2Fthank-you%3Fsession%3D3b9d1e6f0a7c4b2e8d5f9a1c6e3b7d40"
+                + "%26source%3Dqr%26lang%3Den-NG%26return%3D%252Faccount%252Finvoices%252FINV-2026-11-0417"
         case .phone: "tel:+2348031234567"
         case .text: "Gate code 4417. Ring twice, then wait by the blue door."
         }
@@ -46,7 +55,7 @@ enum DemoScene: String {
 
     var expandsDrawer: Bool {
         switch self {
-        case .safeExpanded, .riskyExpanded, .wifiExpanded, .contactExpanded: true
+        case .safeExpanded, .riskyExpanded, .wifiExpanded, .contactExpanded, .longExpanded: true
         default: false
         }
     }

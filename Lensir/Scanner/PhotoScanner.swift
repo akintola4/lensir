@@ -78,6 +78,7 @@ struct PhotoCodesSheet: View {
     var codes: [PhotoCode]
     var onPick: (PhotoCode) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         NavigationStack {
@@ -89,9 +90,11 @@ struct PhotoCodesSheet: View {
                     HStack(spacing: 12) {
                         thumbnail(code.thumbnail)
                         VStack(alignment: .leading, spacing: 2) {
+                            // The whole title at the accessibility sizes, so two
+                            // lookalike sites never cut down to the same "pay…com".
                             ResultDrawer.title(summary)
                                 .foregroundStyle(.white)
-                                .lineLimit(1)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                                 .truncationMode(.middle)
                             HStack(spacing: 4) {
                                 if summary.isWarning {
@@ -106,7 +109,7 @@ struct PhotoCodesSheet: View {
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.footnote.weight(.semibold))
                             .foregroundStyle(Palette.secondaryText)
                     }
                     .frame(minHeight: 56)

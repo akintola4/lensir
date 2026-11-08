@@ -128,28 +128,52 @@ struct ResultDetailsTests {
         #expect(ResultDetails.checks(for: LinkSafety.check("javascript:alert(1)")) == [CheckItem(title: "A web address, not a script or a packed page", passed: false)])
     }
 
-    @Test func wifiFields() {
-        #expect(ResultDetails.fields(for: PayloadParser.parse("WIFI:T:WPA;S:Kola;P:jollof-2026;H:true;;")) == [
-            DetailField(label: "Network", value: "Kola", monospaced: true),
+    @Test func wifiShowsPasswordAndSecurityInCompactAndNothingMore() {
+        let wifi = PayloadParser.parse("WIFI:T:WPA;S:Kola;P:jollof-2026;H:true;;")
+        #expect(ResultDetails.compactFields(for: wifi) == [
             DetailField(label: "Password", value: "jollof-2026", monospaced: true),
             DetailField(label: "Security", value: "WPA/WPA2"),
-            DetailField(label: "Hidden network", value: "Yes"),
         ])
+        // The name is the title and "Hidden Wi-Fi network" is the label.
+        #expect(ResultDetails.moreFields(for: wifi).isEmpty)
     }
 
-    @Test func contactListsEveryField() {
-        let fields = ResultDetails.fields(for: PayloadParser.parse("MECARD:N:Okafor,Ada;TEL:0803;TEL:0701;EMAIL:ada@kola.ng;ORG:Kola;URL:https://kola.ng;ADR:Ikeja;NOTE:Driver;;"))
-        #expect(fields.map(\.label) == ["Name", "Company", "Phone", "Phone", "Email", "Website", "Address", "Note"])
-        #expect(fields.map(\.value) == ["Ada Okafor", "Kola", "0803", "0701", "ada@kola.ng", "https://kola.ng", "Ikeja", "Driver"])
+    @Test func contactDetailsAddOnlyWhatCompactLeavesOut() {
+        let contact = PayloadParser.parse("MECARD:N:Okafor,Ada;TEL:0803;TEL:0701;TEL:0909;EMAIL:ada@kola.ng;ORG:Kola;URL:https://kola.ng;ADR:Ikeja;NOTE:Driver;;")
+        #expect(ResultDetails.compactFields(for: contact).map(\.label) == ["Phone", "Phone", "Email", "Work", "Address"])
+        #expect(ResultDetails.compactFields(for: contact).map(\.value) == ["0803", "0701", "ada@kola.ng", "Kola", "Ikeja"])
+        #expect(ResultDetails.moreFields(for: contact).map(\.label) == ["Phone", "Website", "Note"])
+        #expect(ResultDetails.moreFields(for: contact).map(\.value) == ["0909", "https://kola.ng", "Driver"])
     }
 
-    @Test func otherKindsListTheirFields() {
-        #expect(ResultDetails.fields(for: .phone("+234")).map(\.label) == ["Number"])
-        #expect(ResultDetails.fields(for: .sms(number: "0803", body: "Hi")).map(\.label) == ["To", "Message"])
-        #expect(ResultDetails.fields(for: .email(address: "a@b.ng", subject: "S", body: "B")).map(\.label) == ["To", "Subject", "Message"])
-        #expect(ResultDetails.fields(for: .location(Location(latitude: 6.45, longitude: 3.39, query: "Office"))).map(\.value) == ["6.450000", "3.390000", "Office"])
-        #expect(ResultDetails.fields(for: .text("Hello")) == [DetailField(label: "Length", value: "5 characters")])
-        #expect(ResultDetails.fields(for: .link("https://a.com")).isEmpty)
+    @Test func otherKindsAddOnlyWhatsMissing() {
+        #expect(ResultDetails.moreFields(for: .phone("+234")).isEmpty)
+        #expect(ResultDetails.moreFields(for: .sms(number: "0803", body: "Hi")).isEmpty)
+        #expect(ResultDetails.moreFields(for: .sms(number: "", body: "Hi")) == [DetailField(label: "To", value: "Not given")])
+        #expect(ResultDetails.moreFields(for: .email(address: "a@b.ng", subject: "S", body: "B")).isEmpty)
+        #expect(ResultDetails.compactFields(for: .email(address: "a@b.ng", subject: "S", body: "B")).map(\.label) == ["Subject", "Message"])
+        #expect(ResultDetails.compactFields(for: .location(Location(latitude: 6.45, longitude: 3.39, query: "Office"))).map(\.label) == ["Coordinates"])
+        #expect(ResultDetails.moreFields(for: .location(Location(latitude: 6.45, longitude: 3.39, query: "Office"))).isEmpty)
+        #expect(ResultDetails.moreFields(for: .text("Hello")) == [DetailField(label: "Length", value: "5 characters")])
+        #expect(ResultDetails.moreFields(for: .link("https://a.com")).isEmpty)
+    }
+
+    /// Nothing under Details repeats the title or a compact row.
+    @Test(arguments: [
+        "WIFI:T:WPA;S:Kola;P:jollof-2026;;",
+        "MECARD:N:Okafor,Ada;TEL:0803;EMAIL:ada@kola.ng;ORG:Kola;ADR:Ikeja;;",
+        "tel:+2348031234567",
+        "SMSTO:0803:See you at six",
+        "mailto:ada@kola.ng?subject=Invoice&body=Attached",
+        "geo:6.45,3.39?q=Office",
+        "https://paystack.com/pay",
+        "Gate code 4417",
+    ])
+    func detailsNeverRepeatTheCompactDrawer(raw: String) {
+        let payload = PayloadParser.parse(raw)
+        let title = ResultLogic.summary(for: payload, raw: raw, canJoinWiFi: false).title
+        let shown = Set(ResultDetails.compactFields(for: payload).map(\.value) + [title])
+        #expect(ResultDetails.moreFields(for: payload).allSatisfy { !shown.contains($0.value) })
     }
 }
 

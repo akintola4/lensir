@@ -20,7 +20,7 @@ struct FoundPill: View {
                     .font(summary.titleIsMonospaced ? Typeface.pill : Typeface.check)
                     .lineLimit(1)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.caption2.weight(.bold))
             }
             .foregroundStyle(.black)
             .padding(.leading, summary.pillIcon == .none ? 16 : 13)
@@ -43,11 +43,11 @@ struct FoundPill: View {
             EmptyView()
         case .warning:
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.warning)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.warningOnLight)
         default:
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.caption.weight(.semibold))
         }
     }
 

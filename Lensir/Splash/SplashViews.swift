@@ -64,6 +64,8 @@ struct SplashCredit: View {
             .padding(.bottom, bottomInset + 12)
         }
         .frame(maxWidth: .infinity)
+        // The wordmark is a fixed image, so "Made by" stays its size too.
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .opacity(opacity)
         .allowsHitTesting(false)
         .accessibilityElement(children: .ignore)

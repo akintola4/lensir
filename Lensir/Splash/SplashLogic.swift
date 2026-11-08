@@ -51,9 +51,9 @@ nonisolated enum SplashLogic {
 
         /// Opened from Control Center, the Action Button, the Lock Screen or
         /// Siri: no hunt and no lock, just the grow from the launch mark into
-        /// the viewfinder. The camera takes about this long to start anyway,
-        /// so it costs nothing and covers the black.
-        static let quick = Timeline(hunt: 0, lock: 0, grow: 0.3)
+        /// the viewfinder, over half a second, which covers the camera
+        /// starting up behind it.
+        static let quick = Timeline(hunt: 0, lock: 0, grow: 0.5)
 
         /// The quick version starts growing from the mark itself, since there
         /// was no lock to tighten it.
@@ -171,10 +171,15 @@ nonisolated enum SplashLogic {
             1 - easeInOut(progress(t - timeline.growStarts, over: timeline.grow * 0.5)))
     }
 
+    /// Reduce Motion: the credit fades in, then out again before the
+    /// scanner's own buttons start to fade in under it.
     static func stillCreditOpacity(at t: Double, in timeline: StillTimeline) -> Double {
         guard timeline.hold > 0 else { return 0 }
-        return min(progress(t, over: 0.15), 1 - progress(t - timeline.hold, over: timeline.fade))
+        let fade = min(stillCreditFade, timeline.hold / 2)
+        return min(progress(t, over: fade), 1 - progress(t - (timeline.hold - fade), over: fade))
     }
+
+    static let stillCreditFade = 0.15
 
     static func stillSceneOpacity(at t: Double, in timeline: StillTimeline) -> Double {
         easeInOut(progress(t - timeline.hold, over: timeline.fade))

@@ -7,7 +7,8 @@
 //  here only because Swift Testing can't drive the UI.
 //
 //  Each test opens a demo scene so no camera is needed. Positions are
-//  fractions of the screen, so they hold on any iPhone.
+//  fractions of the screen, so they hold on any iPhone. The scrolling tests
+//  use a long link, since a short one's Details fit on the screen.
 //
 
 import XCTest
@@ -56,7 +57,7 @@ final class DrawerGestureUITests: XCTestCase {
     /// Expanded and scrolled down: the same drag scrolls back to the top
     /// first, then carries on and collapses the drawer, in one movement.
     func testDragDownScrollsBackThenCollapses() {
-        launch("safe-expanded")
+        launch("long-expanded")
         let checks = app.staticTexts["Checks"]
         XCTAssertTrue(checks.waitForExistence(timeout: 3))
         let before = checks.frame.minY
@@ -69,7 +70,7 @@ final class DrawerGestureUITests: XCTestCase {
 
     /// The header is always a handle, even with Details scrolled away.
     func testHeaderDragCollapsesWhileScrolled() {
-        launch("safe-expanded")
+        launch("long-expanded")
         drag(from: 0.85, to: 0.45)
         drag(from: 0.13, to: 0.6)
         expectLabel("Expand details")
@@ -88,12 +89,12 @@ final class DrawerGestureUITests: XCTestCase {
     /// the finger to the release point.
     func testDragFromAButtonDoesNotPressIt() {
         launch("safe")
-        let open = app.buttons["Open in Safari"]
+        let open = app.buttons["Open link"]
         XCTAssertTrue(open.waitForExistence(timeout: 3))
         let start = open.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -300)), withVelocity: 500, thenHoldForDuration: 0.3)
         expectLabel("Collapse details")
-        XCTAssertEqual(app.state, .runningForeground, "Safari opened: the drag pressed the button")
+        XCTAssertEqual(app.state, .runningForeground, "The link opened: the drag pressed the button")
     }
 
     /// Compact: a short, fast flick down from the content closes it.

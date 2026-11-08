@@ -42,6 +42,14 @@ When it opens, the four brackets from the icon hunt for focus, snap in tight ont
 |---|---|---|
 | ![The Wi-Fi code full screen on white: "Point your camera here to join", Kola Logistics, Wi-Fi · WPA/WPA2, Share and Save to Photos](docs/screenshots/make-show.png) | ![History with My codes at the top: the Kola Logistics Wi-Fi, kolalogistics.test and a phone number, each with a small code, then today's scans](docs/screenshots/history.png) | ![My codes with nothing kept yet: "Keep the codes you show often", what it's for, and a Make a code button, above the scans](docs/screenshots/my-codes-empty.png) |
 
+In Light:
+
+| Scanner | A scan | Make | History |
+|---|---|---|---|
+| ![The scanner in Light: black brackets and a white veil over the camera, black Make button](docs/screenshots/looking-light.png) | ![The drawer for paystack.com in Light: a white sheet with a black Open link button](docs/screenshots/safe-link-light.png) | ![The Make drawer in Light: light grey fields, a black chip for Wi-Fi and a black Show code button](docs/screenshots/make-wifi-light.png) | ![History in Light: white cards on grey, with My codes at the top](docs/screenshots/history-light.png) |
+
+Every screen above has a `-light.png` twin in `docs/screenshots/`, and there are Light versions at AX5 and with Increase Contrast for the result drawer and History.
+
 At the largest text size (AX5):
 
 | Make, Wi-Fi | Make, a lookalike | Show code | My codes | Nothing yet | A scanned lookalike |
@@ -73,6 +81,7 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
 - Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. With none kept yet, My codes has a Make a code button; otherwise Make on the scanner is the way in.
 - The photo button reads codes from a picture in your library. If there are several, you pick one from a list.
 - A torch button for dark rooms, and a Haptics switch in Settings (behind History).
+- Lensir follows the phone's Light or Dark setting everywhere, from the opening animation to History. In Dark it's white on black, as it always was. In Light it flips to black on white: the veil around the brackets turns white, and a thin line marks where the drawer meets the camera. A code shown full screen is black on white in both, because that's what other phones scan most reliably.
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.
 
 ## Straight to the scanner
@@ -169,7 +178,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 220 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 12 in `LensirUITests`. The Swift Testing ones cover:
+There are 242 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 17 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -189,6 +198,8 @@ There are 220 tests in `LensirTests` (two of them only draw the widget screensho
 - every kind of made code parsed back by PayloadParser with the same fields, and drawn, then read off the picture by Vision
 - the drawn code: a four-module quiet zone, only black and white pixels, and nearest-neighbour scaling
 - a made lookalike link getting exactly the report a scanned one gets
+- domains wrapping after a dot with the lookalike underline kept
+- Light and Dark: every colour token's value in each, Increase Contrast's darker greys, dark mode's veil matching what it was, and the launch colour and mark having both appearances
 - My codes: keeping the same code twice, renaming, the kind and date on each row, the store it shares with History, and clearing History leaving My codes alone
 - the brightness going up and back once, even if you leave the app and come back
 - the Make drawer's single height, VoiceOver going back to Make when it closes, and the tick on Keep

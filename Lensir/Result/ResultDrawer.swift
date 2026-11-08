@@ -77,7 +77,7 @@ struct ResultDrawer: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
                 titleText
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .lineLimit(3)
                 Text(summary.kindLabel)
@@ -170,11 +170,11 @@ struct ResultDrawer: View {
         switch status {
         case .joining:
             HStack(spacing: 7) {
-                ProgressView().controlSize(.small).tint(.white)
+                ProgressView().controlSize(.small).tint(Palette.ink)
                 Text("Joining…").font(Typeface.check).foregroundStyle(Palette.checkText)
             }
         case .joined:
-            CheckLine(systemName: "checkmark", color: .white, text: "Joined \(ssid)", textColor: Palette.checkText)
+            CheckLine(systemName: "checkmark", color: Palette.ink, text: "Joined \(ssid)", textColor: Palette.checkText)
         case .failed(let message):
             CheckLine(systemName: "exclamationmark.triangle", color: Palette.warning, text: message, textColor: Palette.warningText)
         }
@@ -191,7 +191,7 @@ struct ResultDrawer: View {
                 .frame(height: 1)
             Text("Details")
                 .font(Typeface.sectionHeader)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
 
             if let report = summary.safety {
@@ -212,7 +212,7 @@ struct ResultDrawer: View {
                     Button { copy(result.raw, for: nil) } label: {
                         Image(systemName: copiedRaw ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Palette.ink)
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                             .contentTransition(.symbolEffect(.replace))
@@ -238,7 +238,7 @@ struct ResultDrawer: View {
             Button { onClose(0) } label: {
                 Label("Scan again", systemImage: "viewfinder")
                     .font(Typeface.secondaryButton)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.ink)
                     .frame(maxWidth: .infinity, minHeight: 50)
                     .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Palette.raised))
                     .contentShape(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous))
@@ -277,7 +277,7 @@ struct ResultDrawer: View {
                 DrawerButton { perform(secondary) } label: {
                     buttonLabel(secondary)
                         .font(Typeface.secondaryButton)
-                        .foregroundStyle(secondary == .openAnyway ? Palette.warning : .white)
+                        .foregroundStyle(secondary == .openAnyway ? Palette.warning : Palette.ink)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
                 }
@@ -451,7 +451,7 @@ struct DetailRow: View {
                 .foregroundStyle(Palette.secondaryText)
             Text(value)
                 .font(monospaced ? Typeface.monoBody : Typeface.body)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }

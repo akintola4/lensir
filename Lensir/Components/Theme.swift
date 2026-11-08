@@ -2,8 +2,9 @@
 //  Theme.swift
 //  Lensir
 //
-//  Lensir's few colours and its type. White is the only accent. Green only
-//  ever means safe and red only ever means warning. SF Mono carries the
+//  Lensir's few colours and its type. Ink (white on dark, black on light)
+//  is the only accent. Green only ever means safe and red only ever means
+//  warning. SF Mono carries the
 //  brand: the wordmark, and every address, number and network name, where
 //  a monospaced face keeps l, 1 and I (and O and 0) from passing for each
 //  other. Everything else is SF Pro Rounded, as in the approved design.
@@ -11,28 +12,121 @@
 
 import SwiftUI
 
-enum Palette {
-    static let sheet = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
-    static let raised = Color(red: 0x2C / 255, green: 0x2C / 255, blue: 0x2E / 255)
-    static let control = Color.white.opacity(0.16)
-    /// Labels and the quiet parts of an address. With Increase Contrast on
-    /// it brightens from #8E8E93 to #AEAEB2.
-    static let secondaryText = Color(UIColor { secondaryText(contrast: $0.accessibilityContrast) })
-    static let checkText = Color(red: 0xC7 / 255, green: 0xC7 / 255, blue: 0xCC / 255)
-    static let warningText = Color(red: 0xE5 / 255, green: 0xE5 / 255, blue: 0xEA / 255)
-    static let grabber = Color(red: 0x63 / 255, green: 0x63 / 255, blue: 0x66 / 255)
-    static let hint = Color(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255)
-    static let safe = Color(red: 0x34 / 255, green: 0xC7 / 255, blue: 0x59 / 255)
-    static let warning = Color(red: 0xFF / 255, green: 0x69 / 255, blue: 0x61 / 255)
-    /// The warning red on white (the found pill): #FF6961 is too light there.
-    static let warningOnLight = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
+/// A colour that follows the phone's appearance, and Increase Contrast
+/// where it says. Every colour Lensir draws comes from one of these, so
+/// light and dark are decided here and nowhere else.
+nonisolated struct Swatch: Sendable, Equatable {
+    var dark: UInt32
+    var light: UInt32
+    var darkAlpha: CGFloat = 1
+    var lightAlpha: CGFloat = 1
+    /// With Increase Contrast on, if it changes.
+    var darkHigh: UInt32? = nil
+    var lightHigh: UInt32? = nil
+    var lightHighAlpha: CGFloat? = nil
 
     /// UIKit asks for this on whatever thread draws, so it touches nothing else.
-    nonisolated static func secondaryText(contrast: UIAccessibilityContrast) -> UIColor {
-        contrast == .high
-            ? UIColor(red: 0xAE / 255, green: 0xAE / 255, blue: 0xB2 / 255, alpha: 1)
-            : UIColor(red: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255, alpha: 1)
+    func resolve(style: UIUserInterfaceStyle, contrast: UIAccessibilityContrast) -> UIColor {
+        let high = contrast == .high
+        if style == .light {
+            return Self.rgb(high ? (lightHigh ?? light) : light, alpha: high ? (lightHighAlpha ?? lightAlpha) : lightAlpha)
+        }
+        return Self.rgb(high ? (darkHigh ?? dark) : dark, alpha: darkAlpha)
     }
+
+    var color: Color {
+        let swatch = self
+        return Color(uiColor: UIColor { swatch.resolve(style: $0.userInterfaceStyle, contrast: $0.accessibilityContrast) })
+    }
+
+    private static func rgb(_ hex: UInt32, alpha: CGFloat) -> UIColor {
+        UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+    }
+}
+
+/// Lensir is black and white. In dark mode white is the ink on black; in
+/// light mode the same roles flip, black ink on white, the way Apple's own
+/// apps do. Green only ever means safe and red only ever means warning.
+enum Palette {
+    nonisolated enum Swatches {
+        /// Text, brackets, the wordmark, and the fill of the main buttons.
+        static let ink = Swatch(dark: 0xFFFFFF, light: 0x000000)
+        /// Text on an ink fill: the main buttons, the Make pill, the found pill.
+        static let onInk = Swatch(dark: 0x000000, light: 0xFFFFFF)
+        /// Behind the scanner and the opening animation.
+        static let canvas = Swatch(dark: 0x000000, light: 0xFFFFFF)
+        /// Behind History, Settings and the photo list's cards.
+        static let grouped = Swatch(dark: 0x000000, light: 0xF2F2F7)
+        /// Drawers and the cards in lists.
+        static let sheet = Swatch(dark: 0x1C1C1E, light: 0xFFFFFF)
+        /// Fields, secondary buttons and round buttons in a drawer.
+        static let raised = Swatch(dark: 0x2C2C2E, light: 0xF2F2F7)
+        /// An unselected kind in Make.
+        static let chip = Swatch(dark: 0x2C2C2E, light: 0xE9E9EE)
+        /// Round buttons over the camera.
+        static let control = Swatch(dark: 0xFFFFFF, light: 0xFFFFFF, darkAlpha: 0.16, lightAlpha: 0.92)
+        /// Their edge, so a white button holds its shape over a bright scene.
+        static let controlEdge = Swatch(dark: 0x000000, light: 0xE5E5EA, darkAlpha: 0)
+        /// The drawer's top edge where it meets the camera.
+        static let drawerEdge = Swatch(dark: 0x000000, light: 0xE5E5EA, darkAlpha: 0)
+        /// A 1 pt edge just inside a white code tile, so it doesn't melt
+        /// into a white card.
+        static let tileEdge = Swatch(dark: 0x000000, light: 0x000000, darkAlpha: 0, lightAlpha: 0.1)
+        /// Labels and the quiet parts of an address: 5.1:1 on white, and
+        /// darker still with Increase Contrast.
+        static let secondaryText = Swatch(dark: 0x8E8E93, light: 0x6E6E73, darkHigh: 0xAEAEB2, lightHigh: 0x3C3C43)
+        static let checkText = Swatch(dark: 0xC7C7CC, light: 0x3C3C43, lightHigh: 0x1C1C1E)
+        static let warningText = Swatch(dark: 0xE5E5EA, light: 0x1C1C1E)
+        /// "Made by" on the opening.
+        static let credit = Swatch(dark: 0xFFFFFF, light: 0x6E6E73)
+        static let grabber = Swatch(dark: 0x636366, light: 0x6E6E73, lightAlpha: 0.5, lightHighAlpha: 1)
+        /// The hint over the camera.
+        static let hint = Swatch(dark: 0xF2F2F7, light: 0x000000)
+        /// Keeps the wordmark and the hint readable over the scene: a soft
+        /// shadow on dark, a faint white glow on light.
+        static let glow = Swatch(dark: 0x000000, light: 0xFFFFFF, darkAlpha: 0.5, lightAlpha: 0.7)
+        /// The veil around the brackets: black in dark, white in light, at
+        /// the strength ScanGeometry and DrawerLogic ask for. Black is held
+        /// back so dark mode dims exactly as it did.
+        static let veil = Swatch(dark: 0x000000, light: 0xFFFFFF, darkAlpha: 0.84)
+        static let safe = Swatch(dark: 0x34C759, light: 0x248A3D)
+        static let warning = Swatch(dark: 0xFF6961, light: 0xD70015)
+        /// The warning red on an ink fill (the found pill): #FF6961 is too
+        /// light on white, #D70015 too dark on black.
+        static let warningOnInk = Swatch(dark: 0xD70015, light: 0xFF6961)
+
+        static let all: [String: Swatch] = [
+            "ink": ink, "onInk": onInk, "canvas": canvas, "grouped": grouped, "sheet": sheet, "raised": raised,
+            "chip": chip, "control": control, "controlEdge": controlEdge, "drawerEdge": drawerEdge, "tileEdge": tileEdge,
+            "secondaryText": secondaryText, "checkText": checkText, "warningText": warningText, "credit": credit,
+            "grabber": grabber, "hint": hint, "glow": glow, "veil": veil, "safe": safe, "warning": warning,
+            "warningOnInk": warningOnInk,
+        ]
+    }
+
+    static let ink = Swatches.ink.color
+    static let onInk = Swatches.onInk.color
+    static let canvas = Swatches.canvas.color
+    static let grouped = Swatches.grouped.color
+    static let sheet = Swatches.sheet.color
+    static let raised = Swatches.raised.color
+    static let chip = Swatches.chip.color
+    static let control = Swatches.control.color
+    static let controlEdge = Swatches.controlEdge.color
+    static let drawerEdge = Swatches.drawerEdge.color
+    static let tileEdge = Swatches.tileEdge.color
+    static let secondaryText = Swatches.secondaryText.color
+    static let checkText = Swatches.checkText.color
+    static let warningText = Swatches.warningText.color
+    static let credit = Swatches.credit.color
+    static let grabber = Swatches.grabber.color
+    static let hint = Swatches.hint.color
+    static let glow = Swatches.glow.color
+    static let veil = Swatches.veil.color
+    static let safe = Swatches.safe.color
+    static let warning = Swatches.warning.color
+    static let warningOnInk = Swatches.warningOnInk.color
 }
 
 enum Typeface {
@@ -95,27 +189,28 @@ struct PressableStyle: ButtonStyle {
 struct CircleIcon: View {
     var systemName: String
     var diameter: CGFloat = 44
-    /// White with a black icon: the torch while it's on.
+    /// Ink with the icon cut out: the torch while it's on.
     var filled = false
     var background: Color = Palette.control
 
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: diameter > 48 ? 21 : 17, weight: .semibold))
-            .foregroundStyle(filled ? Color.black : Color.white)
+            .foregroundStyle(filled ? Palette.onInk : Palette.ink)
             .frame(width: diameter, height: diameter)
-            .background(Circle().fill(filled ? Color.white : background))
+            .background(Circle().fill(filled ? Palette.ink : background))
+            .overlay(Circle().strokeBorder(filled || background != Palette.control ? .clear : Palette.controlEdge, lineWidth: 0.8))
             .contentShape(Circle())
     }
 }
 
 extension View {
-    /// The white, full-width main button in a sheet.
+    /// The full-width main button in a sheet, filled with ink.
     func primaryButtonStyle() -> some View {
         font(Typeface.primaryButton)
-            .foregroundStyle(.black)
+            .foregroundStyle(Palette.onInk)
             .frame(maxWidth: .infinity, minHeight: 50)
-            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(.white))
+            .background(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous).fill(Palette.ink))
             .contentShape(RoundedRectangle(cornerRadius: Metrics.buttonRadius, style: .continuous))
     }
 }

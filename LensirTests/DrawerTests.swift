@@ -139,7 +139,7 @@ struct DrawerLogicTests {
     @Test func dimFollowsProgress() {
         #expect(DrawerLogic.dimOpacity(progress: 0, base: 0.5) == 0.5)
         #expect(abs(DrawerLogic.dimOpacity(progress: 1, base: 0.5) - DrawerLogic.dimMax) < 1e-9)
-        #expect(abs(DrawerLogic.dimOpacity(progress: 0.5, base: 0.5) - 0.6) < 1e-9)
+        #expect(abs(DrawerLogic.dimOpacity(progress: 0.5, base: 0.5) - (0.5 + DrawerLogic.dimMax) / 2) < 1e-9)
         // Rubber-banded past the top, it's no darker than fully open.
         #expect(abs(DrawerLogic.dimOpacity(progress: 1.2, base: 0.5) - DrawerLogic.dimMax) < 1e-9)
         #expect(DrawerLogic.progress(height: 380, expanded: expanded) == 0.5)

@@ -67,8 +67,8 @@ struct ContrastTests {
     }
 
     @Test func secondaryTextBrightens() {
-        let normal = Palette.secondaryText(contrast: .normal)
-        let high = Palette.secondaryText(contrast: .high)
+        let normal = Palette.Swatches.secondaryText.resolve(style: .dark, contrast: .normal)
+        let high = Palette.Swatches.secondaryText.resolve(style: .dark, contrast: .high)
         #expect(abs(white(normal) - white(UIColor(red: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255, alpha: 1))) < 0.001)
         #expect(abs(white(high) - white(UIColor(red: 0xAE / 255, green: 0xAE / 255, blue: 0xB2 / 255, alpha: 1))) < 0.001)
         #expect(white(high) > white(normal))

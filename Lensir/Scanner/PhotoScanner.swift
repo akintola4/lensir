@@ -93,7 +93,7 @@ struct PhotoCodesSheet: View {
                             // The whole title at the accessibility sizes, so two
                             // lookalike sites never cut down to the same "pay…com".
                             ResultDrawer.title(summary)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Palette.ink)
                                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                                 .truncationMode(.middle)
                             HStack(spacing: 4) {
@@ -119,7 +119,7 @@ struct PhotoCodesSheet: View {
                 .listRowBackground(Palette.sheet)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(Palette.grouped)
             .navigationTitle("\(codes.count) codes in this photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

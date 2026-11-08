@@ -62,7 +62,7 @@ struct MakeDrawer: View {
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     headerTitle
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.ink)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(draft.kind.title)
@@ -194,6 +194,7 @@ struct CodePreview: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         ZStack {
+            // The code itself is always black on white, in either appearance.
             shape.fill(image == nil ? Palette.raised : Color.white)
             if let image {
                 Image(decorative: image, scale: 1)
@@ -206,6 +207,7 @@ struct CodePreview: View {
                     .foregroundStyle(Palette.secondaryText)
             }
         }
+        .overlay(image == nil ? nil : shape.strokeBorder(Palette.tileEdge, lineWidth: 1))
         .frame(width: side, height: side)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
@@ -271,10 +273,10 @@ private struct MakeForm: View {
                     } label: {
                         Text(kind.title)
                             .font(Typeface.secondaryButton)
-                            .foregroundStyle(selected ? Color.black : .white)
+                            .foregroundStyle(selected ? Palette.onInk : Palette.ink)
                             .padding(.horizontal, 16)
                             .frame(minHeight: 36)
-                            .background(Capsule().fill(selected ? Color.white : Palette.raised))
+                            .background(Capsule().fill(selected ? Palette.ink : Palette.chip))
                             .overlay(contrast == .increased && !selected ? Capsule().stroke(Palette.grabber) : nil)
                             // 36 pt to look at, 44 pt to hit.
                             .padding(.vertical, 4)
@@ -410,7 +412,7 @@ private struct MakeForm: View {
                 HStack {
                     Text(draft.security.label)
                         .font(Typeface.body)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.ink)
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: menuIcon, weight: .semibold))
@@ -441,8 +443,8 @@ private struct MakeForm: View {
         VStack(alignment: .leading, spacing: 6) {
             FieldLabel(label).accessibilityHidden(true)
             input()
-                .foregroundStyle(.white)
-                .tint(.white)
+                .foregroundStyle(Palette.ink)
+                .tint(Palette.ink)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .padding(.vertical, multiline ? 10 : 0)
                 .padding(.horizontal, 12)
@@ -503,7 +505,7 @@ private struct MakeForm: View {
                 }
                 .contentTransition(.opacity)
                 .font(Typeface.secondaryButton)
-                .foregroundStyle(isKept ? Palette.checkText : .white)
+                .foregroundStyle(isKept ? Palette.checkText : Palette.ink)
                 .opacity(canMake ? 1 : 0.4)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())

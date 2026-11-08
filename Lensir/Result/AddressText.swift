@@ -51,7 +51,7 @@ enum AddressText {
                 piece.foregroundColor = Palette.warning
                 piece.underlineStyle = Text.LineStyle(pattern: .solid, color: Palette.warning)
             } else {
-                piece.foregroundColor = .white
+                piece.foregroundColor = Palette.ink
             }
             result += piece
             if breaksAtDots && character == "." { result += AttributedString("\u{200B}") }

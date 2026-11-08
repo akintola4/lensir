@@ -117,8 +117,11 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
         .frame(maxWidth: .infinity)
         .background(alignment: .top) {
             // Runs on below the screen, so the rubber band never shows a gap.
-            UnevenRoundedRectangle(topLeadingRadius: Metrics.drawerRadius, topTrailingRadius: Metrics.drawerRadius, style: .continuous)
+            let shape = UnevenRoundedRectangle(topLeadingRadius: Metrics.drawerRadius, topTrailingRadius: Metrics.drawerRadius, style: .continuous)
+            shape
                 .fill(Palette.sheet)
+                // A hairline where a white drawer meets the camera; none on dark.
+                .overlay(shape.strokeBorder(Palette.drawerEdge, lineWidth: 0.8))
                 .padding(.bottom, -400)
         }
         // Alongside the scroll view and the buttons, not instead of them:

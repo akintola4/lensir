@@ -19,7 +19,6 @@ struct LensirApp: App {
     var body: some Scene {
         WindowGroup {
             ScannerScreen(settings: settings, inbox: inbox)
-                .preferredColorScheme(.dark)
                 .onOpenURL { inbox.receive($0) }
         }
         .modelContainer(container)

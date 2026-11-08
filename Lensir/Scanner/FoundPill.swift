@@ -22,11 +22,11 @@ struct FoundPill: View {
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.bold))
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(Palette.onInk)
             .padding(.leading, summary.pillIcon == .none ? 16 : 13)
             .padding(.trailing, 12)
             .frame(height: 34)
-            .background(Capsule().fill(.white))
+            .background(Capsule().fill(Palette.ink))
             // 34 pt to look at, 44 pt to hit.
             .padding(.vertical, 5)
             .contentShape(Rectangle())
@@ -44,7 +44,7 @@ struct FoundPill: View {
         case .warning:
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.warningOnLight)
+                .foregroundStyle(Palette.warningOnInk)
         default:
             Image(systemName: symbol)
                 .font(.caption.weight(.semibold))

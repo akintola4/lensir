@@ -16,16 +16,16 @@ struct SplashMarks: View {
         ZStack(alignment: .topLeading) {
             if let mark = splash.stillMark {
                 BracketsShape(frame: mark)
-                    .stroke(.white, style: StrokeStyle(lineWidth: SplashLogic.Mark.stroke, lineCap: .round, lineJoin: .round))
+                    .stroke(Palette.ink, style: StrokeStyle(lineWidth: SplashLogic.Mark.stroke, lineCap: .round, lineJoin: .round))
                     .opacity(splash.stillMarkOpacity)
             }
             Circle()
-                .stroke(.white, lineWidth: 1.5)
+                .stroke(Palette.ink, lineWidth: 1.5)
                 .frame(width: splash.ringRadius * 2, height: splash.ringRadius * 2)
                 .position(splash.dotCentre)
                 .opacity(splash.ringOpacity)
             Circle()
-                .fill(.white)
+                .fill(Palette.ink)
                 .frame(width: splash.dotRadius * 2, height: splash.dotRadius * 2)
                 .position(splash.dotCentre)
                 .opacity(splash.dotOpacity)
@@ -35,7 +35,7 @@ struct SplashMarks: View {
     }
 }
 
-/// "Made by" and the DEVAKINTOLA wordmark, white, above the home indicator,
+/// "Made by" and the DEVAKINTOLA wordmark, in ink, above the home indicator,
 /// as on Pocket's and Tape's opening. The launch screen can only hold one
 /// centred image, so this fades in with the first motion rather than
 /// popping on.
@@ -52,12 +52,13 @@ struct SplashCredit: View {
             HStack(alignment: .center, spacing: 7) {
                 Text("Made by")
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(Palette.credit)
                 Image("DevAkintola")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 24)
+                    .foregroundStyle(Palette.ink)
             }
-            .foregroundStyle(.white)
             // The M's side bearing sits the inks right of centre; measured
             // on a 3× screen, this centres them to the pixel.
             .offset(x: -0.5)

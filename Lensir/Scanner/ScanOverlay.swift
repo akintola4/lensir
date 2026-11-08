@@ -22,10 +22,10 @@ struct ScanOverlay: View {
     var body: some View {
         ZStack {
             DimShape(frame: frame)
-                .fill(Color.black.opacity(dim), style: FillStyle(eoFill: true))
+                .fill(Palette.veil.opacity(dim), style: FillStyle(eoFill: true))
             if showsBrackets {
                 BracketsShape(frame: frame)
-                    .stroke(warning ? Palette.warning : .white, style: StrokeStyle(lineWidth: stroke, lineCap: .round, lineJoin: .round))
+                    .stroke(warning ? Palette.warning : Palette.ink, style: StrokeStyle(lineWidth: stroke, lineCap: .round, lineJoin: .round))
                     .opacity(bracketOpacity)
                     .transition(.opacity)
             }

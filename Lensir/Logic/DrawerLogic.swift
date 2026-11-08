@@ -68,8 +68,9 @@ nonisolated enum DrawerLogic {
     /// A release faster than this is treated as this, so a wild flick
     /// can't shoot the drawer off the top.
     static let maxReleaseVelocity: CGFloat = 4000
-    /// How dark the camera gets with the drawer fully open.
-    static let dimMax = 0.7
+    /// How strong the veil gets with the drawer fully open: white at 83% in
+    /// light mode, black at 70% in dark (Palette's veil is 84% black).
+    static let dimMax = 0.833
 
     // MARK: Tracking
 

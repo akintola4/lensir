@@ -66,7 +66,7 @@ struct ScannerScreen: View {
                                   height: proxy.size.height + safe.top + safe.bottom)
                 let splash = splashFrame(at: context.date, screen: size)
                 ZStack(alignment: .topLeading) {
-                    Color.black
+                    Palette.canvas
                     // The page: everything under the drawer. It sinks back a
                     // little as the drawer expands, like Vaul's background scale.
                     ZStack(alignment: .topLeading) {
@@ -99,7 +99,7 @@ struct ScannerScreen: View {
             // screen's own insets never jump when it comes up.
             .ignoresSafeArea(.keyboard)
         }
-        .background(Color.black)
+        .background(Palette.canvas)
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .task { await start() }
         .onChange(of: reduceMotion, initial: true) {
@@ -189,7 +189,7 @@ struct ScannerScreen: View {
                     action: .photo($photoItem)
                 )
             case .checking:
-                Color.black
+                Palette.canvas
             }
         }
         .frame(width: size.width, height: size.height)
@@ -236,8 +236,8 @@ struct ScannerScreen: View {
                 Text("Lensir")
                     .font(Typeface.wordmark)
                     .tracking(-0.34)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 6)
+                    .foregroundStyle(Palette.ink)
+                    .shadow(color: Palette.glow, radius: 6)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if cameraIsLive && (CameraAccess.hasTorch || model.camera == .demo) {
@@ -267,10 +267,10 @@ struct ScannerScreen: View {
                     Button { startMaking() } label: {
                         Text("Make")
                             .font(Typeface.primaryButton)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Palette.onInk)
                             .padding(.horizontal, 28)
                             .frame(minHeight: 48)
-                            .background(Capsule().fill(.white))
+                            .background(Capsule().fill(Palette.ink))
                             // 48 pt to look at, 52 like its neighbours to hit.
                             .padding(.vertical, 2)
                             .contentShape(Rectangle())
@@ -306,7 +306,7 @@ struct ScannerScreen: View {
             .font(Typeface.hint)
             .foregroundStyle(Palette.hint)
             // Keeps it readable over a bright scene, where the dim alone doesn't.
-            .shadow(color: .black.opacity(0.5), radius: 6)
+            .shadow(color: Palette.glow, radius: 6)
             .opacity(text == nil ? 0 : 1)
             .animation(Motion.fade, value: text)
             .accessibilityHidden(text == nil)
@@ -608,7 +608,7 @@ struct CameraMessageView: View {
                     .accessibilityHidden(true)
                 Text(title)
                     .font(.system(.title3, design: .rounded).weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.ink)
                     .accessibilityAddTraits(.isHeader)
                 Text(message)
                     .font(Typeface.body)
@@ -624,7 +624,7 @@ struct CameraMessageView: View {
         }
         .frame(maxWidth: 460)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
+        .background(Palette.canvas)
     }
 
     @ViewBuilder private var button: some View {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Draws LaunchMark.svg, the launch screen's mark: four corner brackets and a
-lens dot, white, at the exact size the splash starts from.
+"""Draws LaunchMark.svg and LaunchMark-light.svg, the launch screen's mark
+in dark and light: four corner brackets and a
+lens dot, at the exact size the splash starts from.
 
     python3 scripts/make-launch-mark.py
 
@@ -62,11 +63,16 @@ def bracket(quarter: int) -> str:
     return "".join(out) + "Z"
 
 
-svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{n(IMAGE)}" height="{n(IMAGE)}" viewBox="0 0 {n(IMAGE)} {n(IMAGE)}">
-  <path d="{''.join(bracket(q) for q in range(4))}" fill="#FFFFFF"/>
-  <circle cx="{n(c)}" cy="{n(c)}" r="{DOT}" fill="#FFFFFF"/>
+def svg(ink: str) -> str:
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{n(IMAGE)}" height="{n(IMAGE)}" viewBox="0 0 {n(IMAGE)} {n(IMAGE)}">
+  <path d="{''.join(bracket(q) for q in range(4))}" fill="{ink}"/>
+  <circle cx="{n(c)}" cy="{n(c)}" r="{DOT}" fill="{ink}"/>
 </svg>
 '''
-out = Path(__file__).resolve().parent.parent / "Lensir/Assets.xcassets/LaunchMark.imageset/LaunchMark.svg"
-out.write_text(svg)
-print(f"wrote {out}")
+
+
+# White on the black launch screen in dark mode, black on white in light.
+folder = Path(__file__).resolve().parent.parent / "Lensir/Assets.xcassets/LaunchMark.imageset"
+for name, ink in (("LaunchMark.svg", "#FFFFFF"), ("LaunchMark-light.svg", "#000000")):
+    (folder / name).write_text(svg(ink))
+    print(f"wrote {folder / name}")

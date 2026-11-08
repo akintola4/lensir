@@ -28,7 +28,7 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack {
             list
-                .background(Color.black)
+                .background(Palette.grouped)
                 .navigationTitle("History")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -93,7 +93,7 @@ struct HistoryView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("No scans yet")
                             .font(Typeface.title)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Palette.ink)
                         Text("Codes you open show up here. They stay on this phone.")
                             .font(Typeface.body)
                             .foregroundStyle(Palette.checkText)
@@ -153,7 +153,9 @@ struct MadeCodeRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
         layout {
             ZStack {
+                // Black on white in either appearance, edged so it holds on a white card.
                 RoundedRectangle(cornerRadius: min(thumbnail, 72) * 0.22, style: .continuous).fill(.white)
+                    .overlay(RoundedRectangle(cornerRadius: min(thumbnail, 72) * 0.22, style: .continuous).strokeBorder(Palette.tileEdge, lineWidth: 1))
                 if let image = CodeImageCache.modules(for: code.raw) {
                     Image(decorative: image, scale: 1)
                         .interpolation(.none)
@@ -168,7 +170,7 @@ struct MadeCodeRow: View {
                 Text(display.monospaced ? AddressText.breakingAtDots(code.name) : code.name)
                     .accessibilityLabel(code.name)
                     .font(display.monospaced ? Typeface.monoTitle : Typeface.title)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.ink)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.middle)
                     .typesettingLanguage(AddressText.noHyphens)
@@ -193,7 +195,7 @@ struct MyCodesEmpty: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Keep the codes you show often")
                 .font(Typeface.title)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
             Text("Your Wi-Fi for guests, your shop's link, your number, one tap away.")
                 .font(Typeface.body)
@@ -229,7 +231,7 @@ struct HistoryRow: View {
                 // One line, cut in the middle; at the accessibility sizes the
                 // whole title, so a lookalike letter is never cut away.
                 ResultDrawer.title(summary)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.ink)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.middle)
                     .typesettingLanguage(AddressText.noHyphens)
@@ -270,11 +272,11 @@ struct SettingsView: View {
                             .foregroundStyle(Palette.secondaryText)
                     }
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.ink)
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(Palette.grouped)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
     }

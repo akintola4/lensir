@@ -13,6 +13,7 @@
 
 import PhotosUI
 import SwiftData
+import AVFoundation
 import SwiftUI
 
 struct ScannerScreen: View {
@@ -145,8 +146,17 @@ struct ScannerScreen: View {
             if scenePhase == .active { startSplash() }
             if scenePhase != .active, model.torchOn {
                 model.torchOn = false
-                CameraAccess.setTorch(false)
+                CameraAccess.setTorch(false, for: model.camera)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AVCaptureSession.wasInterruptedNotification)) { note in
+            // Safety net: if switching the torch ever takes the camera from
+            // the scanner on some other iPhone, turn it off so the picture
+            // comes back instead of staying frozen.
+            guard model.torchOn, model.camera != .demo, CameraAccess.torchCausedInterruption(note) else { return }
+            model.torchOn = false
+            CameraAccess.setTorch(false, for: model.camera)
+            model.show(notice: "The torch isn't available with this camera")
         }
         .sensoryFeedback(trigger: model.lastFound) { _, found in
             HapticLogic.feedback(for: .detected(risky: found.risky), hapticsOn: settings.haptics)
@@ -567,7 +577,7 @@ struct ScannerScreen: View {
 
     private func toggleTorch() {
         let on = !model.torchOn
-        model.torchOn = model.camera == .demo ? on : CameraAccess.setTorch(on)
+        model.torchOn = model.camera == .demo ? on : CameraAccess.setTorch(on, for: model.camera)
     }
 
     private func readPhoto() {

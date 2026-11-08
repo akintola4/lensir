@@ -23,7 +23,7 @@ struct ScannerScreen: View {
     @State private var showingHistory = LaunchOptions.openHistory
     @State private var pendingHistoryRecord: (raw: String, symbology: String, date: Date)?
     @State private var pillSize = CGSize(width: 160, height: 44)
-    @State private var drawer = DrawerState()
+    @State private var drawer = DrawerState(slowdown: LaunchOptions.drawerSlowdown)
     /// What's typed in Make. Kept while the app runs, so closing the drawer
     /// by accident loses nothing.
     @State private var makeDraft = CodeDraft()
@@ -79,8 +79,7 @@ struct ScannerScreen: View {
                         pill(size: size)
                     }
                     .frame(width: size.width, height: size.height)
-                    .clipShape(RoundedRectangle(cornerRadius: model.drawerOpen ? drawer.backgroundRadius : 0, style: .continuous))
-                    .scaleEffect(model.drawerOpen ? drawer.backgroundScale : 1)
+                    .modifier(DrawerSink(drawer: drawer, active: model.drawerOpen))
                     if let splash {
                         SplashCredit(opacity: splash.credit, bottomInset: safe.bottom)
                             .frame(width: size.width, height: size.height)
@@ -208,16 +207,24 @@ struct ScannerScreen: View {
             let frame = splash?.brackets ?? model.detection.map { ScanGeometry.foundFrame(around: $0.bounds, in: size) } ?? ScanGeometry.lookingFrame(in: size)
             let warning = model.result?.summary.isWarning ?? model.detectionSummary?.isWarning ?? false
             let base = ScanGeometry.dimOpacity(found: model.detection != nil)
-            let dim = model.drawerOpen ? drawer.dim(base: base) : base
-            ScanOverlay(
-                frame: frame,
-                dim: cameraIsLive ? dim * (splash?.scene ?? 1) : 0,
-                warning: warning && (model.detection != nil || model.result != nil),
-                showsBrackets: !(model.result != nil && model.detection == nil),
-                stroke: splash?.stroke ?? SplashLogic.scannerStroke,
-                // No camera: the brackets fade out as the message comes in.
-                bracketOpacity: cameraIsLive ? (splash?.bracketOpacity ?? 1) : 1 - (splash?.scene ?? 1)
-            )
+            let open = model.drawerOpen
+            let live = cameraIsLive
+            let brackets = !(model.result != nil && model.detection == nil)
+            let showsWarning = warning && (model.detection != nil || model.result != nil)
+            // The dim follows the drawer's height frame by frame; only the
+            // overlay redraws for it, not the screen.
+            DrawerReader(drawer: drawer) { drawer in
+                let dim = open ? drawer.dim(base: base) : base
+                ScanOverlay(
+                    frame: frame,
+                    dim: live ? dim * (splash?.scene ?? 1) : 0,
+                    warning: showsWarning,
+                    showsBrackets: brackets,
+                    stroke: splash?.stroke ?? SplashLogic.scannerStroke,
+                    // No camera: the brackets fade out as the message comes in.
+                    bracketOpacity: live ? (splash?.bracketOpacity ?? 1) : 1 - (splash?.scene ?? 1)
+                )
+            }
             .animation(Motion.fade, value: warning)
             .frame(width: size.width, height: size.height)
         }
@@ -338,7 +345,8 @@ struct ScannerScreen: View {
                 .padding(.trailing, safe.trailing)
                 // Laid out at full height and pushed down, so only the top
                 // `drawer.height` points show above the edge.
-                .offset(y: maxHeight - drawer.height)
+                .modifier(DrawerRise(drawer: drawer))
+                .offset(y: maxHeight)
             }
             .frame(width: size.width, height: size.height)
         } else if model.making {
@@ -358,7 +366,8 @@ struct ScannerScreen: View {
                 .environment(\.dynamicTypeSize, systemTypeSize)
                 .padding(.leading, safe.leading)
                 .padding(.trailing, safe.trailing)
-                .offset(y: maxHeight - drawer.height)
+                .modifier(DrawerRise(drawer: drawer))
+                .offset(y: maxHeight)
                 .padding(.bottom, lift)
             }
             .frame(width: size.width, height: size.height)
@@ -389,7 +398,7 @@ struct ScannerScreen: View {
     /// go back to waiting, and start the camera again once it's gone.
     private func closeDrawer(velocity: CGFloat = 0) {
         model.releaseDetection()
-        drawer.move(to: .dismissed, velocity: velocity) {
+        drawer.move(to: .dismissed, velocity: velocity, fromDrag: velocity != 0) {
             if drawer.snap == .dismissed { model.clearResult() }
         }
     }
@@ -512,7 +521,7 @@ struct ScannerScreen: View {
         await wait(1.4)
         model.openDetection()
         await wait(1.8)
-        drawer.settle(to: .expanded, velocity: 900)
+        drawer.settle(to: .expanded, velocity: 900, fromDrag: true)
         await wait(2.4)
         drawer.settle(to: .compact)
         await wait(1.4)

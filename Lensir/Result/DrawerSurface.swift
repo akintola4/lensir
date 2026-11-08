@@ -13,7 +13,9 @@
 //  content scrolls whenever it's taller than the room it has.
 //
 //  The drawer's height and physics live in DrawerState and DrawerLogic;
-//  this view draws the frame and reports drags and sizes.
+//  this view draws the frame and reports drags and sizes. Nothing here
+//  reads the height: the small modifiers at the bottom do, so a frame of
+//  a drag or a spring redraws only them.
 //
 
 import SwiftUI
@@ -63,6 +65,9 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
     @State private var dragStartsInHandle = false
     @State private var suppressTaps = false
     @State private var scroller = DrawerScroller()
+    /// A finger is on the drawer, as far as catching it goes. Resets on
+    /// lift and on cancel alike, so a held drawer is never left hanging.
+    @GestureState private var touching = false
 
     private var compactHeight: CGFloat { handleHeight + compactBodyHeight }
     private var fullHeight: CGFloat { handleHeight + scrollContentHeight }
@@ -89,7 +94,7 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { compactBodyHeight = $0 }
                     if expands {
                         details
-                            .opacity(drawer.expansion)
+                            .modifier(DrawerExpansionFade(drawer: drawer))
                             .accessibilityHidden(drawer.snap != .expanded)
                     }
                 }
@@ -119,6 +124,16 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
         // Alongside the scroll view and the buttons, not instead of them:
         // DrawerLogic.track decides, per drag, which one the finger means.
         .simultaneousGesture(drag)
+        // While a spring is moving it, a touch anywhere stops the drawer
+        // under the finger, before it has moved far enough to be a drag.
+        .simultaneousGesture(catchGesture, including: drawer.isCatchable ? .all : .subviews)
+        .onChange(of: touching) {
+            if touching {
+                drawer.hold()
+            } else if let snap = drawer.releaseHold(expands: expands) {
+                finish(snap, velocity: 0, fromDrag: false)
+            }
+        }
         .environment(\.drawerSuppressesTaps, suppressTaps)
         .environment(\.drawerScroller, scroller)
         .onAppear {
@@ -203,11 +218,22 @@ struct DrawerSurface<Header: View, Content: View, Details: View>: View {
                     suppressTaps = false
                 }
                 let velocity = value.velocity.height
-                switch drawer.dragEnded(velocity: velocity, expands: expands) {
-                case .dismissed: onClose(-velocity)
-                case let snap: drawer.settle(to: snap, velocity: -velocity)
-                }
+                finish(drawer.dragEnded(velocity: velocity, expands: expands), velocity: -velocity, fromDrag: true)
             }
+    }
+
+    private var catchGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            .updating($touching) { _, touching, _ in touching = true }
+    }
+
+    /// Let go: close, or spring to `snap` at the finger's speed (positive upward).
+    private func finish(_ snap: DrawerSnap, velocity: CGFloat, fromDrag: Bool) {
+        if snap == .dismissed {
+            onClose(velocity)
+        } else {
+            drawer.settle(to: snap, velocity: velocity, fromDrag: fromDrag)
+        }
     }
 }
 
@@ -226,6 +252,48 @@ struct DrawerButton<Label: View>: View {
             label
         }
     }
+}
+
+/// Details fade in as the drawer expands. Read here rather than in the
+/// drawer's body, so the frames of a drag redraw only this.
+private struct DrawerExpansionFade: ViewModifier {
+    var drawer: DrawerState
+
+    func body(content: Content) -> some View {
+        content.opacity(drawer.expansion)
+    }
+}
+
+/// Lifts a drawer laid out below the screen's edge by its height. The one
+/// place a drawer's position is read, so each frame of a drag or a spring
+/// moves it without redrawing what's in it or the screen behind.
+struct DrawerRise: ViewModifier {
+    var drawer: DrawerState
+
+    func body(content: Content) -> some View {
+        content.offset(y: -drawer.height)
+    }
+}
+
+/// The page behind sinks back and rounds as the drawer expands.
+struct DrawerSink: ViewModifier {
+    var drawer: DrawerState
+    var active: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .clipShape(RoundedRectangle(cornerRadius: active ? drawer.backgroundRadius : 0, style: .continuous))
+            .scaleEffect(active ? drawer.backgroundScale : 1)
+    }
+}
+
+/// Reads the drawer for whatever it builds, so the drawer's frames redraw
+/// only that and not the view it sits in.
+struct DrawerReader<Content: View>: View {
+    var drawer: DrawerState
+    @ViewBuilder var content: (DrawerState) -> Content
+
+    var body: some View { content(drawer) }
 }
 
 /// The drawer handle's frame on screen. A plain reference, so writing it as

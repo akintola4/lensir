@@ -31,9 +31,9 @@ struct ScannerFocusTests {
 @Suite("Drawer timing")
 struct DrawerTimingTests {
     @Test func closingIsQuickerThanOpening() {
-        #expect(DrawerLogic.springDuration(to: .dismissed) == 0.3)
-        #expect(DrawerLogic.springDuration(to: .compact) == 0.4)
-        #expect(DrawerLogic.springDuration(to: .expanded) == 0.4)
+        #expect(DrawerLogic.releaseSpring(velocity: 0, fromDrag: false, from: .compact, to: .dismissed).duration == 0.3)
+        #expect(DrawerLogic.releaseSpring(velocity: 0, fromDrag: false, from: .dismissed, to: .compact).duration == 0.4)
+        #expect(DrawerLogic.releaseSpring(velocity: 0, fromDrag: false, from: .compact, to: .expanded).duration == 0.4)
     }
 }
 

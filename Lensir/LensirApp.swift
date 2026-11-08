@@ -81,6 +81,10 @@ enum LaunchOptions {
     /// `-LensirSplashSlow`: play the opening animation 4× slower, for tuning it.
     static var splashSlowdown: Double { flag("-LensirSplashSlow") ? 4 : 1 }
 
+    /// `-LensirDrawerSlow`: run the drawers' springs 4× slower, so a UI test
+    /// has time to catch one mid-flight.
+    static var drawerSlowdown: Double { flag("-LensirDrawerSlow") ? 4 : 1 }
+
     /// `-LensirSplashAt 0.3`: hold the opening animation at this many seconds
     /// in, for stills. It never moves on to the scanner.
     static var splashFrozenAt: Double? { value(after: "-LensirSplashAt").flatMap(Double.init) }

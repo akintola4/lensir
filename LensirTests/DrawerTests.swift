@@ -30,8 +30,18 @@ struct DrawerLogicTests {
         #expect(pulled > expanded)
         #expect(pulled - expanded < 200 / 2)
         // However far you pull, it gives less than the limit.
-        #expect(DrawerLogic.height(start: expanded, translation: -5000, expanded: expanded) < expanded + 120)
-        #expect(DrawerLogic.rubberBand(0) == 0)
+        #expect(DrawerLogic.height(start: expanded, translation: -5000, expanded: expanded) < expanded + DrawerLogic.rubberBandLimit)
+        #expect(DrawerLogic.rubberBand(offset: 0) == 0)
+        #expect(DrawerLogic.rubberBand(offset: -40) == 0)
+    }
+
+    @Test func rubberBandGivesLessTheFurtherItGoes() {
+        let first = DrawerLogic.rubberBand(offset: 50)
+        let second = DrawerLogic.rubberBand(offset: 100) - first
+        #expect(first < 50 * 0.55)
+        #expect(second < first)
+        // A make drawer has one height, so it bands past that.
+        #expect(DrawerLogic.height(start: compact, translation: -100, expanded: compact) > compact)
     }
 
     @Test func slowReleaseSnapsToTheNearestPoint() {
@@ -67,16 +77,72 @@ struct DrawerLogicTests {
         #expect(DrawerLogic.height(of: .expanded, compact: compact, expanded: expanded) == expanded)
     }
 
-    @Test func releaseVelocityCarriesIntoTheSpring() {
-        #expect(DrawerLogic.relativeVelocity(800, from: 360, to: 760) == 2)
-        #expect(DrawerLogic.relativeVelocity(-720, from: 360, to: 0) == 2)
-        #expect(DrawerLogic.relativeVelocity(500, from: 360, to: 360) == 0)
+    @Test func slowDragPastFortyPercentDismisses() {
+        // 40% of 360 is 144: let go 150 pt down, standing still.
+        #expect(DrawerLogic.shouldDismiss(offset: 150, velocity: 0, compact: compact))
+        #expect(!DrawerLogic.shouldDismiss(offset: 130, velocity: 0, compact: compact))
+        #expect(DrawerLogic.snap(height: compact - 150, velocity: 0, compact: compact, expanded: expanded, from: .compact) == .dismissed)
+        #expect(DrawerLogic.snap(height: compact - 130, velocity: 0, compact: compact, expanded: expanded, from: .compact) == .compact)
     }
 
-    @Test func dimDeepensWithHeight() {
-        #expect(DrawerLogic.dimOpacity(height: 0, expanded: expanded, base: 0.5) == 0.5)
-        #expect(abs(DrawerLogic.dimOpacity(height: expanded, expanded: expanded, base: 0.5) - 0.7) < 1e-9)
-        #expect(abs(DrawerLogic.dimOpacity(height: 380, expanded: expanded, base: 0.5) - 0.6) < 1e-9)
+    @Test func shortFastFlickDismisses() {
+        #expect(DrawerLogic.shouldDismiss(offset: 20, velocity: 600, compact: compact))
+        #expect(!DrawerLogic.shouldDismiss(offset: 20, velocity: 400, compact: compact))
+        // Moving down fast, but still above compact: not closing.
+        #expect(!DrawerLogic.shouldDismiss(offset: -20, velocity: 900, compact: compact))
+    }
+
+    @Test func onlyADragBounces() {
+        let drag = DrawerLogic.releaseSpring(velocity: 800, fromDrag: true, from: .compact, to: .expanded)
+        #expect(drag == DrawerSpring(duration: 0.4, bounce: DrawerLogic.dragBounce, velocity: 800))
+        // The grabber tapped, a button, VoiceOver's escape: no force, no bounce, no speed.
+        let tap = DrawerLogic.releaseSpring(velocity: 800, fromDrag: false, from: .compact, to: .expanded)
+        #expect(tap == DrawerSpring(duration: 0.4, bounce: 0, velocity: 0))
+        // Closing never bounces; it's on its way out.
+        #expect(DrawerLogic.releaseSpring(velocity: -900, fromDrag: true, from: .compact, to: .dismissed).bounce == 0)
+    }
+
+    @Test func snapBackIsQuick() {
+        let back = DrawerLogic.releaseSpring(velocity: -200, fromDrag: true, from: .compact, to: .compact)
+        #expect(back.duration == DrawerLogic.snapBackDuration)
+        #expect(back.duration < DrawerLogic.openDuration)
+    }
+
+    @Test func wildFlicksAreCapped() {
+        #expect(DrawerLogic.releaseSpring(velocity: -20_000, fromDrag: true, from: .compact, to: .dismissed).velocity == -DrawerLogic.maxReleaseVelocity)
+    }
+
+    @Test func reduceMotionKeepsNoThrowAndNoBounce() {
+        let spring = DrawerLogic.releaseSpring(velocity: 1500, fromDrag: true, from: .compact, to: .expanded, reduceMotion: true)
+        #expect(spring == DrawerSpring(duration: DrawerLogic.reducedMotionDuration, bounce: 0, velocity: 0))
+    }
+
+    @Test func flightStartsAtTheFingersSpeedAndLands() {
+        let flight = DrawerFlight(from: compact, to: expanded, spring: DrawerSpring(duration: 0.4, bounce: 0, velocity: 1200))
+        let start = DrawerLogic.sample(flight, at: 0)
+        #expect(start.height == compact)
+        #expect(abs(start.velocity - 1200) < 1)
+        let end = DrawerLogic.sample(flight, at: 2)
+        #expect(abs(end.height - expanded) < 0.5)
+        #expect(DrawerLogic.isSettled(flight, height: end.height, velocity: end.velocity))
+    }
+
+    @Test func aThrownSpringOvershootsThenComesBack() {
+        let flight = DrawerFlight(from: compact, to: expanded, spring: DrawerSpring(duration: 0.4, bounce: DrawerLogic.dragBounce, velocity: 2500))
+        let peak = stride(from: 0.0, through: 1, by: 1.0 / 120).map { DrawerLogic.sample(flight, at: $0).height }.max()!
+        #expect(peak > expanded)
+        #expect(peak < expanded + 40)
+        #expect(DrawerLogic.hasArrived(flight, height: peak))
+        #expect(!DrawerLogic.hasArrived(flight, height: 500))
+    }
+
+    @Test func dimFollowsProgress() {
+        #expect(DrawerLogic.dimOpacity(progress: 0, base: 0.5) == 0.5)
+        #expect(abs(DrawerLogic.dimOpacity(progress: 1, base: 0.5) - DrawerLogic.dimMax) < 1e-9)
+        #expect(abs(DrawerLogic.dimOpacity(progress: 0.5, base: 0.5) - 0.6) < 1e-9)
+        // Rubber-banded past the top, it's no darker than fully open.
+        #expect(abs(DrawerLogic.dimOpacity(progress: 1.2, base: 0.5) - DrawerLogic.dimMax) < 1e-9)
+        #expect(DrawerLogic.progress(height: 380, expanded: expanded) == 0.5)
     }
 
     @Test func backgroundSinksOnlyPastCompact() {

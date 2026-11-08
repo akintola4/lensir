@@ -73,11 +73,18 @@ final class ScannerModel {
     /// Off during the opening animation, so a code in view can't take the
     /// brackets before they've become the viewfinder.
     var acceptsCodes = true
+    /// "Open results right away" in Settings: a code that holds still opens
+    /// the drawer by itself, as if the pill had been tapped.
+    var autoOpen = false
 
     /// A drawer covers the camera: a result, or Make.
     var drawerOpen: Bool { result != nil || making }
 
     private var lostTask: Task<Void, Never>?
+    private var autoOpenLogic = AutoOpenLogic()
+    private var autoOpenTask: Task<Void, Never>?
+    /// Seconds, for AutoOpenLogic. Uptime only goes forward.
+    private let clock: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     private var noticeTask: Task<Void, Never>?
 
     /// The camera sees a code. A new one snaps the brackets onto it with a
@@ -97,12 +104,36 @@ final class ScannerModel {
         } else if detection != new {
             withAnimation(reduceMotion ? nil : Motion.track) { detection = new }
         }
+        considerOpening(new.raw)
+    }
+
+    /// With auto-open on, a code that stays in view opens the drawer once
+    /// it's been steady for AutoOpenLogic.steady. The tap already played as
+    /// the brackets snapped; opening adds no second one.
+    private func considerOpening(_ raw: String) {
+        let now = clock()
+        if autoOpenLogic.seen(raw, at: now, enabled: autoOpen) {
+            openDetection()
+            return
+        }
+        // A new code to wait on: ask again once it's had time to settle,
+        // since a code held perfectly still may not be reported again.
+        guard let candidate = autoOpenLogic.candidate, candidate.since == now else { return }
+        autoOpenTask?.cancel()
+        autoOpenTask = Task {
+            try? await Task.sleep(for: .seconds(AutoOpenLogic.steady))
+            guard !Task.isCancelled, !drawerOpen, acceptsCodes, detection?.raw == candidate.raw,
+                  autoOpenLogic.check(at: clock(), enabled: autoOpen) else { return }
+            openDetection()
+        }
     }
 
     /// The code left the frame. Wait a moment before letting go, so a shaky
     /// hand doesn't make the pill flicker away just as you reach for it.
     func lost() {
-        guard !drawerOpen, detection != nil else { return }
+        guard !drawerOpen else { return }
+        autoOpenLogic.lost(at: clock())
+        guard detection != nil else { return }
         lostTask?.cancel()
         lostTask = Task {
             try? await Task.sleep(for: .milliseconds(700))
@@ -118,6 +149,8 @@ final class ScannerModel {
     func openDetection() {
         guard let detection else { return }
         lostTask?.cancel()
+        autoOpenTask?.cancel()
+        autoOpenLogic.opened()
         withAnimation(Motion.fade) {
             result = ScanResult(raw: detection.raw, symbology: detection.symbology, source: .camera)
         }
@@ -125,6 +158,8 @@ final class ScannerModel {
 
     func open(raw: String, symbology: String, source: ScanResult.Source, scannedAt: Date = .now) {
         lostTask?.cancel()
+        autoOpenTask?.cancel()
+        autoOpenLogic.opened()
         withAnimation(Motion.fade) {
             detection = nil
             detectionSummary = nil
@@ -145,6 +180,8 @@ final class ScannerModel {
     /// Make was tapped: let go of any code in view and raise the Make drawer.
     func startMaking() {
         lostTask?.cancel()
+        autoOpenTask?.cancel()
+        autoOpenLogic.opened()
         withAnimation(Motion.fade) {
             detection = nil
             detectionSummary = nil
@@ -154,6 +191,8 @@ final class ScannerModel {
 
     /// The drawer is gone: drop the result, and the camera starts again.
     func clearResult() {
+        // A camera code stays closed while it's still in view.
+        if let result, result.source == .camera { autoOpenLogic.closed(result.raw, at: clock()) }
         result = nil
         making = false
     }

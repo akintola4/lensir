@@ -24,6 +24,9 @@ enum DemoScene: String {
     /// Plays through the drawer by itself, for recording: the brackets snap,
     /// the drawer rises, expands, settles back and is flicked away.
     case drawerTour = "drawer-tour"
+    /// A code that comes into view and stays, reported ten times a second
+    /// the way a live camera reports one, for the auto-open UI tests.
+    case live
     /// The Make drawer, filled in: a link, the Kola Logistics Wi-Fi, a
     /// lookalike link with its warning, and the Wi-Fi shown full screen.
     case makeLink = "make-link"
@@ -34,7 +37,7 @@ enum DemoScene: String {
     var payload: String? {
         switch self {
         case .looking, .photos, .makeLink, .makeWiFi, .makeRisky, .makeShow: nil
-        case .found, .safe, .safeExpanded, .drawerTour: "https://paystack.com/pay/kola-logistics"
+        case .found, .safe, .safeExpanded, .drawerTour, .live: "https://paystack.com/pay/kola-logistics"
         // The "a" after "payst" is Cyrillic (U+0430).
         case .risky, .riskyExpanded: "https://payst\u{0430}ck.com/pay"
         case .http: "http://bit.ly/3kQ9xZp"
@@ -54,7 +57,7 @@ enum DemoScene: String {
     /// Scenes that open with the drawer already up, not just the pill.
     var opensSheet: Bool {
         switch self {
-        case .looking, .found, .photos, .drawerTour, .makeLink, .makeWiFi, .makeRisky, .makeShow: false
+        case .looking, .found, .photos, .drawerTour, .live, .makeLink, .makeWiFi, .makeRisky, .makeShow: false
         default: true
         }
     }

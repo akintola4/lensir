@@ -75,12 +75,13 @@ The Simulator has no camera, so these use the launch arguments below. They draw 
   | Place (`geo:`) | Open in Maps | Copy coordinates |
   | Text or a product barcode | Copy text | |
 
+- Turn on Open results right away in Settings if you'd rather skip the tap. Hold a code still for a quarter of a second and the drawer comes up at its compact height by itself. You still get the one tap as the brackets snap, and no second one when the drawer rises. It's off until you turn it on. If you close the drawer, that code stays closed while it's in front of the camera. It opens again once it's been out of view for 0.7 s, or when a different code turns up. A link still only opens when you press Open.
 - Every code you open goes into History, newest first and grouped by day. Swipe a row to delete it, or clear the lot. Tapping a row opens it again.
 - Make, the white button between the photo and History buttons, raises the same drawer to make a code. Pick Wi-Fi, Link, Phone, Contact or Text and fill it in. The drawer's header reads like a scan's: what you're making on the left and its code on the right, redrawing as you type. A link you make gets the same checks as one you scan, and if it looks risky, Show code and Keep both ask before going ahead. Typing `kolalogistics.test` is enough; Lensir adds `https://`.
 - Show code puts the code full screen on white and turns the brightness all the way up until you close it. The phone won't lock while it's showing. Share sends the picture. Save to Photos asks only to add to your library, never to read it.
 - Keep puts the code in My codes, at the top of History. Tap one to show it again, swipe it to delete or rename it. Clearing History leaves My codes alone. With none kept yet, My codes has a Make a code button; otherwise Make on the scanner is the way in.
 - The photo button reads codes from a picture in your library. If there are several, you pick one from a list.
-- A torch button for dark rooms, and a Haptics switch in Settings (behind History).
+- A torch button for dark rooms, and switches for Haptics and Open results right away in Settings (behind History).
 - Lensir follows the phone's Light or Dark setting everywhere, from the opening animation to History. In Dark it's white on black, as it always was. In Light it flips to black on white. The veil around the brackets turns a light grey and the window inside them gets a slightly stronger white wash, so the window is always the lightest part of the screen, over a dark room or a sunlit wall, the way it's the brightest part in Dark. The black brackets carry a thin white rim, so they hold at least 3:1 against anything the camera sees, and a one-pixel line marks where the drawer meets the camera. While Make is up there's nothing to aim at, so the window closes and the veil is one even grey. A code shown full screen is black on white in both, because that's what other phones scan most reliably.
 - Addresses, network names and numbers are set in SF Mono. In a monospaced face a swapped letter can't hide: l, 1 and I look different, and so do O and 0.
 
@@ -104,7 +105,7 @@ The widget opens `lensir://scan`. The control, the Action Button and Siri run `O
 
 Apple's Camera app opens a link the moment you tap its banner, and plenty of scanner apps open it as soon as they read it. That's exactly what a scam code is counting on. A sticker over the real code on a parking meter or a market stall can send you to a page that looks like your bank.
 
-Lensir stops before that. The brackets find the code and the pill tells you the site's name. Nothing opens until you've seen the whole address in the drawer and pressed Open yourself. When something about a link looks wrong, the brackets turn red, Copy link becomes the main button, and opening it is a red "Open anyway" underneath.
+Lensir stops before that. The brackets find the code and the pill tells you the site's name. Nothing opens until you've seen the whole address in the drawer and pressed Open yourself. When something about a link looks wrong, the brackets turn red, Copy link becomes the main button, and opening it is a red "Open anyway" underneath. Open results right away only saves you the tap on the pill. You still have to press Open.
 
 ## The checks
 
@@ -178,7 +179,7 @@ With a paid developer account, add `LENSIR_WIFI_JOIN = YES` to `Config/Local.xcc
 xcodebuild test -scheme Lensir -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.1'
 ```
 
-There are 242 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 17 in `LensirUITests`. The Swift Testing ones cover:
+There are 259 tests in `LensirTests` (two of them only draw the widget screenshots, and are skipped unless `scripts/widget-screenshots.sh` asks for them) and 20 in `LensirUITests`. The Swift Testing ones cover:
 
 - every kind of code: links, Wi-Fi (escaped `;`, `:`, `\` and `"`, hidden networks, open networks, WEP, WPA3), MECARD, vCard 3 and 4 with folded lines, `tel:`, `sms:` and `SMSTO:`, `mailto:` and `MATMSG:`, `geo:`, plain text and barcodes
 - every safety rule, the exact letters each lookalike underlines and the sentence it says
@@ -203,8 +204,9 @@ There are 242 tests in `LensirTests` (two of them only draw the widget screensho
 - My codes: keeping the same code twice, renaming, the kind and date on each row, the store it shares with History, and clearing History leaving My codes alone
 - the brightness going up and back once, even if you leave the app and come back
 - the Make drawer's single height, VoiceOver going back to Make when it closes, and the tick on Keep
+- opening by itself: a code has to hold still for 0.25 s, one sliding past doesn't open, a code you closed stays closed while it's in view and opens again after 0.7 s out of view or for a different code, and nothing opens with the setting off
 
-`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled (on a long link, so Details scroll), by the header, up from the content, a flick to close, and a drag that starts on Open link, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. `DrawerFeelUITests` adds a fast flick, a slow drag past 40%, a short drag that snaps back, a pull past the top that rubber-bands back, and catching the drawer mid-close; `scripts/record-drawer.sh` records each of those into `~/Movies/Lensir drawer/`. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Two more make a code with the keyboard: one types a link, keeps it, finds it in My codes and opens it full screen; the other types a short link and checks that Keep asks first. Those runs take about a minute and a half. Add `-only-testing:LensirTests` to skip them.
+`LensirUITests` uses XCTest, because Swift Testing can't drive the screen. It drags the drawer with real touches: down from the middle of Details, down while scrolled (on a long link, so Details scroll), by the header, up from the content, a flick to close, and a drag that starts on Open link, which must move the drawer without pressing the button. Taps on buttons and the grabber still have to work. `DrawerFeelUITests` adds a fast flick, a slow drag past 40%, a short drag that snaps back, a pull past the top that rubber-bands back, and catching the drawer mid-close; `scripts/record-drawer.sh` records each of those into `~/Movies/Lensir drawer/`. Two more open `lensir://scan` while History or the result drawer is up and check that it closes. Two more make a code with the keyboard: one types a link, keeps it, finds it in My codes and opens it full screen; the other types a short link and checks that Keep asks first. `AutoOpenUITests` turns the setting on with `-LensirAutoOpen` and checks that the drawer comes up without a touch on the pill. Then it flicks the drawer away and checks it doesn't come back while the code is still in view. With the setting off, the pill waits for a tap. Those runs take about two minutes. Add `-only-testing:LensirTests` to skip them.
 
 Leave out `OS=26.1` if your iPhone 17 Pro simulator runs a newer iOS.
 
@@ -214,6 +216,8 @@ A few are in the scheme, switched off. Turn them on under Product › Scheme ›
 
 - `-LensirDemo found` opens on a stand-in camera with a code in view. The scenes are `looking`, `found`, `safe`, `risky`, `http`, `wifi`, `contact`, `phone`, `text` and `photos`. All of them except `looking`, `found` and `photos` open the drawer too. `safe-expanded`, `risky-expanded`, `wifi-expanded`, `contact-expanded` and `long-expanded` (a long payment link whose Details scroll) open it pulled all the way up.
 - `-LensirDemo drawer-tour` plays the drawer through by itself, since you can't drag in the Simulator: the brackets snap, the drawer rises, expands, settles back and is flicked away. It's how the first recording in `~/Movies/Lensir drawer/` was made.
+- `-LensirDemo live` puts a code in view and reports it ten times a second, like a real camera does, so Open results right away behaves the way it would on a phone.
+- `-LensirAutoOpen` turns on Open results right away for that run, without saving it.
 - `-LensirDrawerSlow` runs the drawers' springs 4× slower, so a UI test can catch one mid-flight.
 - `-LensirDemo make-link` opens the Make drawer filled in. The others are `make-wifi`, `make-risky` (a lookalike link) and `make-show` (the Wi-Fi code full screen).
 - `-LensirOpenHistory` opens History on launch, filled with demo scans and My codes. Add `-LensirEmptyHistory` to see it empty, or `-LensirEmptyCodes` for scans with no My codes.
@@ -241,7 +245,8 @@ Demo runs keep history in memory, so they never touch your real history.
 Lensir/            the app
   Logic/           pure and tested: PayloadParser, LinkSafety, Confusables, Brands,
                    Punycode, LinkAddress, ResultSummary, ResultDetails, ScanGeometry,
-                   DrawerLogic, HistoryLogic, ScanRouting, CodeMaker, MyCodesLogic
+                   DrawerLogic, HistoryLogic, ScanRouting, CodeMaker, MyCodesLogic,
+                   AutoOpenLogic
   Scanner/         the screen: camera (VisionKit, with an AVFoundation fallback),
                    brackets, pill, photos, demo scenes
   Result/          the drawer (DrawerSurface, shared with Make) and its state, the address
